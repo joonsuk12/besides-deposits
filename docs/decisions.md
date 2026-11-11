@@ -24,3 +24,12 @@
 8. **화면은 처음부터 Next.js.** 처음엔 Jinja2 템플릿(Thymeleaf와 비슷)을 추천했으나, 화면이 앱 수준으로 커질 것이라는 사용자 의견에 따라 변경. 백엔드는 JSON API만 담당.
 9. **추가 요금 없이 구현한다.** 무료 데이터 출처, 로컬 실행, 유료 LLM API 미사용. 요약은 사용자의 Claude 구독 안에서 Claude Code 예약 작업으로 처리하는 방식을 기본안으로 한다 (3단계에서 구체화).
 10. **개발 환경**: Windows 11, Python 3.12, Node.js 22 (기존 3.9 / 16에서 추가 설치).
+
+## 2026-11-11 — 1단계 구현
+
+- 백엔드 `stock` 도메인: `GET /stocks`, `GET /stocks/{code}/prices?days=`, `POST /stocks/collect`. 관심 종목 4개의 3년치 일봉(각 729일)을 SQLite에 저장.
+- 프론트: 종목 선택, 기간(3개월·1년·3년), 캔들 + 거래량 차트, 날짜를 누르면 그날 시가·고가·저가·종가·거래량 표시, 캔들 읽는 법 안내. 뉴스·리포트 자리는 비워 둠.
+- **백엔드 포트를 8000 → 8100으로 변경.** 이 PC에서 8000번은 SMPortal(Django)이 쓰고 있어 충돌했다.
+- 주가 출처는 pykrx 우선, 실패 시 FinanceDataReader. pykrx는 KRX 로그인 경고를 내지만 일봉 조회는 된다.
+- 관심 종목 목록은 지금 `backend/app/stock/collector.py`의 `WATCHLIST`에 코드로 들어 있다. 화면에서 추가·삭제하는 기능은 아직 없다.
+- 사용 버전: Next.js 16, React 19, lightweight-charts 5, FastAPI + SQLAlchemy 2.

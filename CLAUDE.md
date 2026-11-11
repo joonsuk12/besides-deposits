@@ -21,6 +21,6 @@
 
 ## 실행
 
-- 백엔드: `backend`에서 `.venv\Scripts\uvicorn app.main:app --reload --port 8000` (Python 3.12)
+- 백엔드: `backend`에서 `.venv\Scripts\uvicorn app.main:app --reload --port 8100` (Python 3.12)
 - 프론트: `frontend`에서 `npm run dev` (Node 22, 포트 3000)
 - 주가 수집: `backend`에서 `.venv\Scripts\python -m app.stock.collector`

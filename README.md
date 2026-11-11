@@ -5,7 +5,7 @@
 이 문서는 프로젝트 소개이자 **대화 이어가기 문서**다. 어떤 환경(다른 PC, 새 Claude 세션)에서든 이 파일과 [CLAUDE.md](CLAUDE.md), [docs/](docs/)만 읽으면 지금까지의 결정과 맥락을 그대로 이어받을 수 있게 유지한다.
 
 - 최종 갱신: 2026-11-11
-- 현재 단계: **1단계 진행 중** (뼈대 + 주가 수집 + 차트 화면)
+- 현재 단계: **1단계 구현 완료, 사용자 확인 대기** → 다음은 2단계(뉴스)
 
 ---
 
@@ -66,7 +66,7 @@
 
 ```
 stock-newbie-stroll/
-  backend/     FastAPI + SQLAlchemy + SQLite (JSON API만 담당, 포트 8000)
+  backend/     FastAPI + SQLAlchemy + SQLite (JSON API만 담당, 포트 8100)
   frontend/    Next.js + TypeScript + TradingView Lightweight Charts (화면, 포트 3000)
   docs/        결정 기록, Spring↔FastAPI 대응표
   README.md    이 문서 (대화 이어가기)
@@ -110,7 +110,7 @@ backend/app/
 
 | 데이터 | 출처 | 비고 |
 |---|---|---|
-| 주가(일봉) | pykrx (대안: FinanceDataReader) | KRX 사이트 변경 시 깨질 수 있어 대안 유지 |
+| 주가(일봉) | pykrx (대안: FinanceDataReader) | pykrx가 실패하면 자동으로 FinanceDataReader로 재시도. pykrx가 "KRX 로그인 실패" 경고를 찍지만 일봉 조회는 동작함 (2026-11-11 확인) |
 | 뉴스 | 네이버 검색 API(공식·무료, 키 발급 필요) 우선, 네이버 금융 종목 뉴스 | 2단계 |
 | 증권사 리포트 | 네이버 금융 리서치 > 종목분석 | 3단계. 하루 수십 건 수준 |
 | 공시 | OpenDART API(공식·무료, 키 발급 필요) | 4단계 |
@@ -129,7 +129,7 @@ backend/app/
 
 ## 7. 단계별 계획과 진행 상황
 
-- [ ] **1단계** — FastAPI 뼈대(SQLite), 관심 종목 일봉 수집, Next.js 캔들 차트 화면
+- [x] **1단계** — FastAPI 뼈대(SQLite), 관심 종목 일봉 수집, Next.js 캔들 차트 화면 (2026-11-11 구현. 사용자가 직접 띄워 보고 흐름 설명을 듣는 일이 남음)
 - [ ] **2단계** — 뉴스 수집, 차트 날짜와 연결, 중복 묶기·긍정/부정 표시
 - [ ] **3단계** — 증권사 리포트 수집, 간단 요약(전체) + 초보용 상세 요약(관심 종목), 리포트 피드 화면
 - [ ] **4단계** — OpenDART 공시, 매일 자동 실행(장 마감 뒤)
@@ -140,14 +140,18 @@ backend/app/
 
 필요한 것: Python 3.12, Node.js 22
 
+한 번에 띄우기 (설치를 마친 뒤): 레포 폴더에서 `dev.cmd` 실행 → http://localhost:3000
+
+백엔드 포트가 8100인 이유: 이 PC에서 8000번은 다른 프로젝트(SMPortal, Django)가 쓰고 있다.
+
 ```bash
 # 백엔드 (처음 한 번)
 cd backend
 py -3.12 -m venv .venv
 .venv\Scripts\pip install -r requirements.txt
 
-# 백엔드 실행 → http://localhost:8000/docs 에서 API 문서(Swagger) 확인
-.venv\Scripts\uvicorn app.main:app --reload --port 8000
+# 백엔드 실행 → http://localhost:8100/docs 에서 API 문서(Swagger) 확인
+.venv\Scripts\uvicorn app.main:app --reload --port 8100
 ```
 
 ```bash
@@ -158,6 +162,14 @@ npm install
 # 프론트엔드 실행 → http://localhost:3000
 npm run dev
 ```
+
+```bash
+# 주가 수집 (관심 종목, 마지막 저장일 다음 날부터 오늘까지)
+cd backend
+.venv\Scripts\python -m app.stock.collector
+```
+
+수집은 `POST http://localhost:8100/stocks/collect` 로도 실행할 수 있다. 4단계에서 매일 자동 실행으로 바꾼다.
 
 ## 9. 알려진 제약
 
