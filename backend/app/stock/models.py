@@ -8,13 +8,16 @@ from app.core.database import Base
 
 
 class Stock(Base):
-    """종목."""
+    """종목. 국내 상장 종목 전체가 들어 있고, 관심 종목은 is_watched로 표시한다."""
 
     __tablename__ = "stock"
 
     code: Mapped[str] = mapped_column(primary_key=True)  # 종목코드 6자리 (예: 005930)
     name: Mapped[str]
+    market: Mapped[str] = mapped_column(default="")  # KOSPI / KOSDAQ / ETF
     is_watched: Mapped[bool] = mapped_column(default=False)  # 관심 종목 여부
+    # 주가를 마지막으로 가져온 날. 같은 날 여러 번 외부에 요청하지 않으려고 둔다.
+    prices_checked_on: Mapped[date | None] = mapped_column(default=None)
 
 
 class DailyPrice(Base):

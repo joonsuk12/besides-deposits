@@ -9,7 +9,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.core.database import create_tables
+from app.core.database import SessionLocal, create_tables
+from app.stock import service as stock_service
 from app.stock.router import router as stock_router
 
 
@@ -17,6 +18,8 @@ from app.stock.router import router as stock_router
 async def lifespan(app: FastAPI):
     # 서버가 뜰 때 한 번 실행된다 (@PostConstruct / ApplicationRunner와 비슷).
     create_tables()
+    with SessionLocal() as db:
+        stock_service.init_stock_data(db)
     yield
 
 

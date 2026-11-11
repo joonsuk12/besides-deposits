@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import Header from "@/components/Header/Header";
 import "./globals.css";
+import "./chart.css";
 
 export const metadata: Metadata = {
   title: "주식초보나들이",
@@ -9,7 +12,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body>
+        <Suspense>
+          <Header />
+        </Suspense>
+        {children}
+      </body>
     </html>
   );
 }

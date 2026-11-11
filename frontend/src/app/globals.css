@@ -1,145 +1,55 @@
+/* NewStocks의 어두운 남색 바탕 + 민트 강조색을 그대로 쓴다. */
 :root {
-  --bg: #f6f7f9;
-  --card: #ffffff;
-  --line: #e6e8ec;
-  --text: #1b1f27;
-  --sub: #6b7280;
-  --accent: #1f3a5f;
-  --up: #e0443e;
-  --down: #2f6fde;
+  --bg: #00051e;
+  --line: #5a5a5ada;
+  --mint: #4fe7b0;
+  --sub: #8c8c8c;
+  --hover: #646a89;
+  --panel: #3b3f52;
+  /* 한국 증시 관례: 오르면 빨강, 내리면 파랑 */
+  --up: #ff5a5a;
+  --down: #5b9bff;
 }
 
 * {
   box-sizing: border-box;
 }
 
-body {
+html {
+  overflow-y: scroll;
+}
+
+body,
+html {
+  max-width: 100vw;
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
-  font-size: 15px;
-  line-height: 1.6;
+  background-color: var(--bg);
+  color: #fff;
+  font-family: "Open Sans", "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
 button {
   font: inherit;
-  cursor: pointer;
+  color: inherit;
 }
 
-.page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px 16px 48px;
+html::-webkit-scrollbar {
+  width: 10px;
 }
 
-.top {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 24px;
-  margin-bottom: 16px;
+html::-webkit-scrollbar-thumb {
+  background: rgba(79, 79, 79, 0.27);
+  border-radius: 10px;
 }
 
-.top h1 {
-  margin: 0;
-  font-size: 20px;
-  color: var(--accent);
-}
-
-.stocks,
-.periods {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.chip {
-  padding: 6px 14px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--card);
-  color: var(--text);
-}
-
-.chip:hover {
-  border-color: var(--accent);
-}
-
-.chip.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-
-.chip.small {
-  padding: 3px 12px;
-  font-size: 13px;
-}
-
-.main {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 16px;
-  align-items: start;
-}
-
-.card {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 18px;
-}
-
-.card h2 {
-  margin: 0 0 8px;
-  font-size: 16px;
-}
-
-.side {
-  display: grid;
-  gap: 16px;
-}
-
-.quote {
-  display: grid;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.name {
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.code,
-.asof {
-  margin-left: 8px;
-  color: var(--sub);
-  font-size: 13px;
-}
-
-.price-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 10px;
-}
-
-.price {
-  font-size: 28px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.change,
-.day-change {
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.asof {
-  margin-left: 0;
+html::-webkit-scrollbar-track,
+html::-webkit-scrollbar-corner {
+  background: rgba(91, 91, 91, 0.1);
 }
 
 .up {
@@ -148,74 +58,4 @@ button {
 
 .down {
   color: var(--down);
-}
-
-.chart {
-  width: 100%;
-  height: 460px;
-}
-
-.hint,
-.placeholder,
-.notice {
-  color: var(--sub);
-  font-size: 13px;
-}
-
-.hint {
-  margin: 8px 0 0;
-}
-
-.notice {
-  padding: 16px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-}
-
-.day-change {
-  margin: 0 0 10px;
-}
-
-.ohlc {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 4px 16px;
-  margin: 0;
-}
-
-.ohlc dt {
-  color: var(--sub);
-}
-
-.ohlc dd {
-  margin: 0;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.placeholder {
-  margin: 14px 0 0;
-  padding-top: 12px;
-  border-top: 1px dashed var(--line);
-}
-
-.guide ul {
-  margin: 0;
-  padding-left: 18px;
-  font-size: 14px;
-}
-
-.guide li + li {
-  margin-top: 6px;
-}
-
-@media (max-width: 860px) {
-  .main {
-    grid-template-columns: 1fr;
-  }
-
-  .chart {
-    height: 340px;
-  }
 }

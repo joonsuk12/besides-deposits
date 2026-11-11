@@ -13,6 +13,7 @@ class StockResponse(BaseModel):
 
     code: str
     name: str
+    market: str
     is_watched: bool
 
 
@@ -25,6 +26,18 @@ class PriceResponse(BaseModel):
     low: int
     close: int
     volume: int
+
+
+class WatchlistItem(BaseModel):
+    """관심 종목 한 줄: 종목 + 최근 종가와 전날 대비 변화."""
+
+    code: str
+    name: str
+    market: str
+    date: datetime.date | None  # 최근 종가 날짜 (주가가 아직 없으면 None)
+    close: int | None
+    change: int | None  # 전날 종가 대비 (원)
+    change_pct: float | None  # 전날 종가 대비 (%)
 
 
 class CollectResult(BaseModel):
