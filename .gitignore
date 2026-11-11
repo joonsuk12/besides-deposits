@@ -1,0 +1,27 @@
+# 비밀값
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# 데이터 (DB 파일, 리포트 원문은 올리지 않는다)
+backend/data/
+*.db
+*.sqlite3
+*.pdf
+
+# Node
+node_modules/
+.next/
+out/
+
+# 기타
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.claude/
