@@ -19,6 +19,12 @@
 - 요약 문구에 매수·매도 권유를 넣지 않는다.
 - 결정이 바뀌거나 단계가 끝나면 `README.md`(진행 상황, 최종 갱신일)와 `docs/decisions.md`를 갱신한다.
 
+## Git 작업 방식
+
+- **새 작업은 main에서 새 브랜치를 만들어 시작한다** (2026-11-12 사용자 요청). 이름 예: `feature/disclosure`, `fix/report-headline`.
+- 작업이 끝나면 그 브랜치에 커밋·push하고, main에 합칠지는 사용자에게 묻는다.
+- main에 직접 커밋하지 않는다 (문서 오타 같은 아주 작은 수정도 사용자에게 먼저 확인).
+
 ## 실행
 
 - 백엔드: `backend`에서 `.venv\Scripts\uvicorn app.main:app --reload --port 8100` (Python 3.12)
