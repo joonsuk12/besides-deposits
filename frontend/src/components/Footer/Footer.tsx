@@ -31,11 +31,10 @@ export default function Footer() {
         </p> */}
         <div className={styles["logo-title"]}>
           <div id={styles["main-title"]}>주식초보나들이</div>
-          <div id={styles["sub-title"]}>STOCK NEWS AND REVIEW</div>
+          <div id={styles["sub-title"]}>STOCK NEWBIE STROLL</div>
         </div>
       </div>
       <div className={styles["footer-content"]}>
-        <div><button>개인정보 처리 방침</button> | <button>서비스 이용 약관</button></div><br />
         <div id={styles["footer-content-text"]}>개인용 서비스 · 화면 원작: NEWStocks (2023 SSAFY A210 OH GOOD 팀)</div>
         <div>투자 판단의 책임은 본인에게 있습니다. 이 서비스는 매수·매도를 권유하지 않습니다.</div>
       </div>

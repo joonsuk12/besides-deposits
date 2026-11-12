@@ -1,28 +1,28 @@
+// 시작 페이지 02 섹션의 예시 카드. NewStocks의 오답노트 카드 모양을 그대로 쓰고, 내용만 리포트 요약으로 바꿨다.
 import styles from './cardsample.module.css'
 
 import { BsBookmark } from "react-icons/bs";
-import { BiCommentDetail } from "react-icons/bi"
-import { AiOutlineStar } from "react-icons/ai"
-import { AiOutlineShareAlt } from "react-icons/ai"
 
 import stockimg from '@/assets/stockimg.png'
 import Image from 'next/image';
 
 interface CardSampleProps {
-  title: string;
-  content: string;
-  author: string;
-  stock: string;
+  title: string;    // 리포트 제목
+  content: string;  // 초보용 한 줄 결론
+  author: string;   // 증권사
+  stock: string;    // 종목
+  date: string;
+  tags: string[];
 }
 
-export default function CardSample({ title, content, author, stock }:CardSampleProps) {
+export default function CardSample({ title, content, author, stock, date, tags }: CardSampleProps) {
   return (
     <div className={styles['card-container']} id={styles['landing-container']}>
       <div className={styles['image-container']}>
         <Image
-					src={stockimg}
-          alt="stockimg"
-				/></div>
+          src={stockimg}
+          alt="차트 예시"
+        /></div>
 
       <div className={styles['title-container']}>
         <div className={styles['title-left']}>
@@ -39,7 +39,7 @@ export default function CardSample({ title, content, author, stock }:CardSampleP
       </div>
 
       <div className={styles['content-container']}>
-        <div className={styles['content']}>{content}</div>
+        <div className={styles['content']}>💡 {content}</div>
       </div>
 
       <div className={styles['content-bottom-container']}>
@@ -48,26 +48,12 @@ export default function CardSample({ title, content, author, stock }:CardSampleP
           <div className={styles['profile-name']}>{author}</div>
         </div>
 
-        <div className={styles['time']}>23.08.30 11:41</div>
+        <div className={styles['time']}>{date}</div>
       </div>
 
       <div className={styles['bottom-container']}>
         <div className={styles['tag-container']}>
-          <div>#우량주</div>
-          <div>#급매</div>
-        </div>
-        <div className={styles['icons-container']}>
-          <div>
-            <BiCommentDetail className={styles['icons']} size="16" />
-            <p>15</p>
-          </div>
-          <div>
-            <AiOutlineStar className={styles['icons']} size="16" />
-            <p>15</p>
-          </div>
-          <div>
-            <AiOutlineShareAlt className={styles['icons']} size="16" />
-          </div>
+          {tags.map((tag) => <div key={tag}>{tag}</div>)}
         </div>
       </div>
     </div>

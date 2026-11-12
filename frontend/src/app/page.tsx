@@ -1,5 +1,5 @@
 'use client'
-// 시작 페이지. NewStocks의 랜딩 페이지를 그대로 옮긴 것 (서비스 이름만 바꿈).
+// 시작 페이지. NewStocks의 랜딩 페이지 화면을 그대로 옮기고 문구만 이 서비스에 맞게 바꿨다.
 import styles from './page.module.css'
 import LandingView from '@/components/LandingView/LandingView'
 import Footer from '@/components/Footer/Footer'
@@ -23,13 +23,13 @@ export default function Home() {
         </div>
         <div className={styles["landing-main-container"]}>
           <div className={styles["title-animation"]}>
-            <div className={styles["title-mini"]}>100% 주식 오답노트 솔루션 📝</div>
+            <div className={styles["title-mini"]}>주식 초보를 위한 첫 나들이 🚶</div>
             <div className={styles["title-main"]}><span>주식초보나들이</span></div>
-            <div className={styles["title"]}><span>주식 뉴스</span> & <span>오답노트</span> 플랫폼</div>
+            <div className={styles["title"]}><span>차트</span> · <span>뉴스</span> · <span>리포트</span>를 쉽게</div>
           </div>
           <div className={styles["head-description"]}>
-            <div>주식정보, 뉴스, 오답노트까지</div>
-            <div>기존에 없던 서비스를 경험해보세요 </div>
+            <div>차트 위에 그날의 뉴스를, 어려운 증권사 리포트는 쉬운 요약으로</div>
+            <div>처음이어도 천천히 둘러보세요</div>
           </div>
           <div className={styles["title-botton-box"]}>
             <div className={styles["Button-width"]}>
