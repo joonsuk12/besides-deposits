@@ -21,8 +21,8 @@
 }
 
 .side-container {
-  width: 25%;
-  min-width: 260px;
+  width: 30%;
+  min-width: 300px;
   padding: 16px 16px 32px 0;
   display: grid;
   gap: 16px;
@@ -177,3 +177,34 @@
     padding: 0 16px 32px;
   }
 }
+
+.desc {
+  margin: -4px 0 4px;
+  color: var(--sub);
+  font-size: 13px;
+}
+
+.mark-n {
+  color: #b4ff4a;
+}
+
+.mark-r {
+  color: #ff7ad9;
+}
+
+.day-section {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+}
+
+.day-section h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+
+.stack {
+  display: grid;
+  gap: 10px;
+}
+

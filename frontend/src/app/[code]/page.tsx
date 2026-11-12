@@ -1,21 +1,29 @@
 "use client";
 
 // 종목 차트 화면 (주소: /005930). NewStocks의 종목 화면 배치를 따른다.
-//   왼쪽: 관심 종목 목록 / 가운데: 차트와 그날 뉴스(2단계) / 오른쪽: 선택한 날 정보와 초보 안내
+//   왼쪽: 관심 종목 목록
+//   가운데: 차트(뉴스 N·리포트 R 표시) → 많이 다뤄진 뉴스 키포인트 → 최근 뉴스
+//   오른쪽: 선택한 날의 가격·뉴스·리포트 → 이 종목의 최근 증권사 리포트 → 캔들 읽는 법
 
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { FaRegStar, FaStar } from "react-icons/fa";
 
-import StockChart from "@/components/StockChart";
+import NewsList from "@/components/NewsList/NewsList";
+import ReportCard from "@/components/ReportCard/ReportCard";
+import StockChart, { type DayMarks } from "@/components/StockChart";
 import StockProfile from "@/components/StockProfile/StockProfile";
 import WatchlistSidebar from "@/components/WatchlistSidebar/WatchlistSidebar";
 import {
   addWatch,
   fetchPrices,
   fetchStock,
+  fetchStockNews,
+  fetchStockReports,
   fetchWatchlist,
   removeWatch,
+  type News,
   type Price,
+  type Report,
   type Stock,
   type WatchlistItem,
 } from "@/lib/api";
@@ -31,6 +39,12 @@ const won = (n: number) => n.toLocaleString("ko-KR");
 const tone = (n: number) => (n > 0 ? "up" : n < 0 ? "down" : "");
 const sign = (n: number) => (n > 0 ? "+" : "");
 
+// 주말·휴일에 나온 뉴스·리포트는 그다음 거래일 캔들에 붙인다
+function toTradingDay(date: string, tradingDays: string[]): string | null {
+  for (const d of tradingDays) if (d >= date) return d;
+  return null;
+}
+
 export default function StockPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
 
@@ -38,6 +52,8 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [days, setDays] = useState(365);
   const [prices, setPrices] = useState<Price[]>([]);
+  const [news, setNews] = useState<News[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -50,9 +66,13 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
 
   useEffect(() => {
     setError(null);
+    setNews([]);
+    setReports([]);
     fetchStock(code)
       .then(setStock)
       .catch(() => setError("종목을 찾을 수 없거나 백엔드(8100번 포트)가 꺼져 있습니다."));
+    fetchStockNews(code, 365).then(setNews).catch(() => {});
+    fetchStockReports(code, 20).then(setReports).catch(() => {});
   }, [code]);
 
   useEffect(() => {
@@ -70,6 +90,36 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
       cancelled = true;
     };
   }, [code, days]);
+
+  // 뉴스·리포트를 거래일 기준으로 묶는다
+  const byDay = useMemo(() => {
+    const tradingDays = prices.map((p) => p.date);
+    const newsByDay = new Map<string, News[]>();
+    const reportsByDay = new Map<string, Report[]>();
+    for (const n of news) {
+      const d = toTradingDay(n.date, tradingDays);
+      if (d) newsByDay.set(d, [...(newsByDay.get(d) ?? []), n]);
+    }
+    for (const r of reports) {
+      const d = toTradingDay(r.write_date, tradingDays);
+      if (d) reportsByDay.set(d, [...(reportsByDay.get(d) ?? []), r]);
+    }
+    return { newsByDay, reportsByDay };
+  }, [prices, news, reports]);
+
+  const marks: DayMarks = useMemo(
+    () => ({ newsDates: new Set(byDay.newsByDay.keys()), reportDates: new Set(byDay.reportsByDay.keys()) }),
+    [byDay],
+  );
+
+  // 최근 7일 동안 여러 언론사가 다룬 뉴스 = 키포인트
+  const keyNews = useMemo(() => {
+    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+    return news
+      .filter((n) => n.date >= weekAgo && n.cluster_size > 1)
+      .sort((a, b) => b.cluster_size - a.cluster_size)
+      .slice(0, 5);
+  }, [news]);
 
   const toggleWatch = async () => {
     if (!stock) return;
@@ -94,6 +144,8 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
     return i < 0 ? null : { day: prices[i], before: prices[i - 1] };
   }, [prices, selectedDate]);
   const dayChange = selected?.before ? selected.day.close - selected.before.close : null;
+  const dayNews = selectedDate ? (byDay.newsByDay.get(selectedDate) ?? []) : [];
+  const dayReports = selectedDate ? (byDay.reportsByDay.get(selectedDate) ?? []) : [];
 
   return (
     <div className={styles["mainpage"]}>
@@ -139,15 +191,24 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
           {!loading && prices.length === 0 && !error && (
             <p className={styles["notice"]}>이 종목의 주가 데이터를 가져오지 못했습니다.</p>
           )}
-          {!loading && prices.length > 0 && <StockChart prices={prices} onSelectDate={setSelectedDate} />}
+          {!loading && prices.length > 0 && (
+            <StockChart prices={prices} marks={marks} onSelectDate={setSelectedDate} />
+          )}
         </div>
-        <p className={styles["hint"]}>차트에서 날짜를 누르면 그날의 정보가 오른쪽에 나옵니다.</p>
+        <p className={styles["hint"]}>
+          <b className={styles["mark-n"]}>N</b> 뉴스가 있는 날 · <b className={styles["mark-r"]}>R</b> 증권사 리포트가 나온 날 —
+          차트에서 날짜를 누르면 그날의 내용이 오른쪽에 나옵니다.
+        </p>
 
         <section className={styles["news"]}>
-          <h2>뉴스</h2>
-          <p className={styles["placeholder"]}>
-            {selectedDate ?? "날짜"}의 종목 뉴스는 2단계에서 여기에 표시됩니다.
-          </p>
+          <h2>📰 이번 주 많이 다뤄진 뉴스</h2>
+          <p className={styles["desc"]}>여러 언론사가 같은 내용을 다룰수록 중요한 소식일 가능성이 큽니다.</p>
+          <NewsList items={keyNews} empty="최근 7일 동안 여러 언론사가 함께 다룬 뉴스가 없습니다." />
+        </section>
+
+        <section className={styles["news"]}>
+          <h2>최근 뉴스</h2>
+          <NewsList items={news.slice(0, 15)} empty="뉴스를 불러오는 중이거나 없습니다." />
         </section>
       </main>
 
@@ -174,8 +235,33 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
               <dt>거래량</dt>
               <dd>{won(selected.day.volume)}주</dd>
             </dl>
+
+            {dayReports.length > 0 && (
+              <div className={styles["day-section"]}>
+                <h3>📄 이날 나온 리포트</h3>
+                <div className={styles["stack"]}>
+                  {dayReports.map((r) => (
+                    <ReportCard key={r.nid} report={r} compact showStock={false} />
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className={styles["day-section"]}>
+              <h3>📰 이날의 뉴스</h3>
+              <NewsList items={dayNews} empty="이날 수집된 뉴스가 없습니다. (최근 뉴스 위주로 모읍니다)" />
+            </div>
           </section>
         )}
+
+        <section className={styles["card"]}>
+          <h2>증권사 리포트</h2>
+          <div className={styles["stack"]}>
+            {reports.slice(0, 5).map((r) => (
+              <ReportCard key={r.nid} report={r} compact showStock={false} />
+            ))}
+            {reports.length === 0 && <p className={styles["placeholder"]}>최근 나온 리포트가 없습니다. ETF나 소형주는 리포트가 드뭅니다.</p>}
+          </div>
+        </section>
 
         <section className={`${styles["card"]} ${styles["guide"]}`}>
           <h2>캔들 읽는 법</h2>

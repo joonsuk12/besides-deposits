@@ -1,5 +1,5 @@
 "use client";
-// 상단 바: 로고, 종목 검색, 메뉴(차트 / 내 관심종목). NewStocks의 Header를 옮긴 것.
+// 상단 바: 로고, 종목 검색, 메뉴(차트 / 오늘의 리포트 / 내 관심종목). NewStocks의 Header를 옮긴 것.
 // 커뮤니티·로그인 메뉴는 빠지고 그 자리에 "내 관심종목"이 들어갔다.
 
 import SearchBox from "../SearchBox/SearchBox";
@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 
 import { BiBarChartAlt2 } from "react-icons/bi";
 import { FaRegStar } from "react-icons/fa";
+import { HiOutlineDocumentText } from "react-icons/hi";
 
 import Logoimg from "@/assets/logo.png";
 import { goToStart, type Stock } from "@/lib/api";
@@ -38,6 +39,12 @@ export default function Header() {
           <div className={styles["header-link"]} onClick={goToStart}>
             <BiBarChartAlt2 size="29" />
             <span className={styles["tooltip-chart"]}>차트</span>
+          </div>
+          <div className={styles["header-link"]}>
+            <Link className={styles["community-link"]} href="/reports">
+              <HiOutlineDocumentText size="28" />
+              <span className={styles["tooltip-community"]}>오늘의 리포트</span>
+            </Link>
           </div>
           <div className={styles["header-link"]}>
             <Link className={styles["community-link"]} href="/watchlist">

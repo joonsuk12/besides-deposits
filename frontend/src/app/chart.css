@@ -27,3 +27,8 @@
   font-weight: 700;
   margin-bottom: 2px;
 }
+
+.chart-tooltip .tt-tags {
+  margin-top: 4px;
+  color: var(--mint);
+}

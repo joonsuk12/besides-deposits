@@ -1,31 +1,49 @@
 "use client";
 
 // 내 관심종목 화면 (주소: /watchlist).
-// 종목마다 최근 종가와 함께 증권사 리포트 요약(3단계), 공시·사업보고서(4단계)를 모아 보는 곳.
-// 요약 기능이 붙기 전까지는 원문을 볼 수 있는 무료 사이트로 바로 가는 링크를 둔다.
+// 종목마다 최근 종가, 최신 증권사 리포트 요약, 이번 주 많이 다뤄진 뉴스를 한눈에 본다.
+// 공시(사업보고서 등)는 4단계에서 붙일 예정이라 지금은 DART 검색으로 보낸다.
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import NewsList from "@/components/NewsList/NewsList";
+import ReportCard from "@/components/ReportCard/ReportCard";
 import StockProfile from "@/components/StockProfile/StockProfile";
-import { fetchWatchlist, removeWatch, type WatchlistItem } from "@/lib/api";
+import {
+  fetchStockNews,
+  fetchStockReports,
+  fetchWatchlist,
+  removeWatch,
+  type News,
+  type Report,
+  type WatchlistItem,
+} from "@/lib/api";
 import styles from "./watchlist.module.css";
 
 const won = (n: number) => n.toLocaleString("ko-KR");
 
-// 원문을 볼 수 있는 무료 사이트
-const naverResearchUrl = (code: string) =>
-  `https://finance.naver.com/research/company_list.naver?searchType=itemCode&itemCode=${code}`;
 // DART는 주소로 회사명을 미리 채울 수 없어 검색 화면으로만 보낸다 (2026-11-12 확인)
 const DART_SEARCH_URL = "https://dart.fss.or.kr/dsab007/main.do";
 
+type Extra = { reports: Report[]; news: News[] };
+
 export default function WatchlistPage() {
   const [items, setItems] = useState<WatchlistItem[] | null>(null);
+  const [extra, setExtra] = useState<Record<string, Extra>>({});
   const [error, setError] = useState(false);
 
   const load = () =>
     fetchWatchlist()
-      .then(setItems)
+      .then((list) => {
+        setItems(list);
+        // 종목마다 리포트·뉴스를 따로 불러와 도착하는 대로 채운다
+        for (const s of list) {
+          Promise.all([fetchStockReports(s.code, 3).catch(() => []), fetchStockNews(s.code, 7).catch(() => [])]).then(
+            ([reports, news]) => setExtra((prev) => ({ ...prev, [s.code]: { reports, news } })),
+          );
+        }
+      })
       .catch(() => setError(true));
 
   useEffect(() => {
@@ -41,7 +59,7 @@ export default function WatchlistPage() {
     <div className={styles["page"]}>
       <div className={styles["head"]}>
         <h1>내 관심종목</h1>
-        <p>종목마다 증권사 리포트와 공시를 모아 봅니다. 종목 추가는 차트 화면의 ☆로 합니다.</p>
+        <p>종목마다 최신 증권사 리포트 요약과 이번 주 많이 다뤄진 뉴스를 모아 봅니다. 종목 추가는 차트 화면의 ☆로 합니다.</p>
       </div>
 
       {error && <p className={styles["notice"]}>백엔드(8100번 포트)에 연결하지 못했습니다.</p>}
@@ -50,6 +68,8 @@ export default function WatchlistPage() {
       <div className={styles["list"]}>
         {items?.map((s) => {
           const t = s.change === null ? "" : s.change > 0 ? "up" : s.change < 0 ? "down" : "";
+          const ex = extra[s.code];
+          const topNews = ex ? [...ex.news].sort((a, b) => b.cluster_size - a.cluster_size).slice(0, 3) : [];
           return (
             <article key={s.code} className={styles["card"]}>
               <header className={styles["card-head"]}>
@@ -81,24 +101,27 @@ export default function WatchlistPage() {
 
               <div className={styles["sections"]}>
                 <section className={styles["section"]}>
-                  <h2>증권사 리포트</h2>
-                  <p className={styles["placeholder"]}>
-                    3단계에서 리포트를 모아 <b>초보용 요약</b>(한 줄 결론, 목표주가 변화, 핵심 근거, 리스크, 용어 풀이)으로 보여 줍니다.
-                  </p>
-                  <a className={styles["ext"]} href={naverResearchUrl(s.code)} target="_blank" rel="noreferrer">
-                    지금은 네이버 금융 리서치에서 원문 보기 ↗
-                  </a>
+                  <h2>📄 최신 증권사 리포트</h2>
+                  {!ex && <p className={styles["placeholder"]}>불러오는 중…</p>}
+                  {ex && ex.reports.length === 0 && (
+                    <p className={styles["placeholder"]}>최근 나온 리포트가 없습니다. ETF나 소형주는 리포트가 드뭅니다.</p>
+                  )}
+                  {ex && ex.reports[0] && <ReportCard report={ex.reports[0]} compact showStock={false} />}
+                  {ex && ex.reports.length > 1 && (
+                    <Link href={`/${s.code}`} className={styles["ext"]}>
+                      이전 리포트 {ex.reports.length - 1}건 더 보기 →
+                    </Link>
+                  )}
                 </section>
                 <section className={styles["section"]}>
-                  <h2>공시 · 사업보고서</h2>
-                  <p className={styles["placeholder"]}>
-                    4단계에서 실적·증자·전환사채 같은 공시를 모아, 무엇이 중요한지 쉬운 말로 보여 줍니다.
-                  </p>
-                  <a className={styles["ext"]} href={DART_SEARCH_URL} target="_blank" rel="noreferrer">
-                    지금은 DART 전자공시에서 &quot;{s.name}&quot; 검색 ↗
-                  </a>
+                  <h2>📰 이번 주 주요 뉴스</h2>
+                  {!ex && <p className={styles["placeholder"]}>불러오는 중…</p>}
+                  {ex && <NewsList items={topNews} empty="최근 7일 동안 뉴스가 없습니다." />}
                 </section>
               </div>
+              <a className={styles["ext"]} href={DART_SEARCH_URL} target="_blank" rel="noreferrer">
+                공시·사업보고서는 DART 전자공시에서 &quot;{s.name}&quot; 검색 ↗ (4단계에서 쉬운 요약으로 붙일 예정)
+              </a>
             </article>
           );
         })}

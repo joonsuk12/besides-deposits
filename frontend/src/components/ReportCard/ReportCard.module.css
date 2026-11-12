@@ -1,0 +1,146 @@
+.card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: rgba(176, 176, 176, 0.05);
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.stock {
+  font-weight: 700;
+  color: var(--mint);
+}
+
+.stock:hover {
+  text-decoration: underline;
+}
+
+.meta,
+.prev,
+.title {
+  color: var(--sub);
+  font-size: 12px;
+}
+
+.headline {
+  margin: 6px 0 8px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.badge {
+  padding: 2px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font-variant-numeric: tabular-nums;
+}
+
+.op-buy {
+  border-color: var(--up);
+  color: var(--up);
+}
+
+.op-neutral {
+  border-color: #c9c9c9;
+}
+
+.op-sell {
+  border-color: var(--down);
+  color: var(--down);
+}
+
+.body {
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.body h4 {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+
+.body ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.body li + li {
+  margin-top: 3px;
+}
+
+.risk h4 {
+  color: #ffc861;
+}
+
+.terms dl {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.terms dl div {
+  display: grid;
+  grid-template-columns: minmax(70px, auto) 1fr;
+  gap: 10px;
+}
+
+.terms dt {
+  color: var(--mint);
+  font-weight: 600;
+}
+
+.terms dd {
+  margin: 0;
+  color: #d6d8e0;
+}
+
+.foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+.actions button,
+.actions a {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--mint);
+  cursor: pointer;
+}
+
+.actions button:hover,
+.actions a:hover {
+  text-decoration: underline;
+}

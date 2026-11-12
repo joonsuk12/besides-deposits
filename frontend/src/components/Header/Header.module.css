@@ -118,3 +118,11 @@
 .header-link:hover .tooltip-chart {
   display: block;
 }
+
+/* 메뉴 이름이 길어져 툴팁 폭을 글자에 맞춘다 */
+.tooltip-community,
+.tooltip-chart {
+  width: auto;
+  height: auto;
+  white-space: nowrap;
+}

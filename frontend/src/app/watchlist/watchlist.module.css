@@ -122,3 +122,13 @@
 .ext:hover {
   text-decoration: underline;
 }
+
+.card > .ext {
+  display: inline-block;
+  margin-top: 12px;
+}
+
+.section .ext {
+  display: inline-block;
+  margin-top: 8px;
+}
