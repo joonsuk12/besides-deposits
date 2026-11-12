@@ -148,3 +148,13 @@
 
   cursor: pointer;
 }
+/* 01·03 섹션: 글 영역과 이미지 영역이 서로 밀어내지 않게 나눠 갖는다 */
+.landing-containers .content-box {
+  flex-shrink: 0;
+}
+
+.stock-image-box,
+.value-image-box {
+  flex: 1;
+  min-width: 0;
+}

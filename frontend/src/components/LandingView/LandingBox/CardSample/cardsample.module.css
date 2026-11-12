@@ -118,3 +118,13 @@
   background-color: #4fe7af4f;
   margin-right: 6px;
 }
+
+.image-container {
+  overflow: hidden;
+}
+
+.image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

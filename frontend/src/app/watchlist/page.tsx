@@ -16,8 +16,8 @@ const won = (n: number) => n.toLocaleString("ko-KR");
 // 원문을 볼 수 있는 무료 사이트
 const naverResearchUrl = (code: string) =>
   `https://finance.naver.com/research/company_list.naver?searchType=itemCode&itemCode=${code}`;
-const dartUrl = (name: string) =>
-  `https://dart.fss.or.kr/dsab007/main.do?option=corp&textCrpNm=${encodeURIComponent(name)}`;
+// DART는 주소로 회사명을 미리 채울 수 없어 검색 화면으로만 보낸다 (2026-11-12 확인)
+const DART_SEARCH_URL = "https://dart.fss.or.kr/dsab007/main.do";
 
 export default function WatchlistPage() {
   const [items, setItems] = useState<WatchlistItem[] | null>(null);
@@ -94,8 +94,8 @@ export default function WatchlistPage() {
                   <p className={styles["placeholder"]}>
                     4단계에서 실적·증자·전환사채 같은 공시를 모아, 무엇이 중요한지 쉬운 말로 보여 줍니다.
                   </p>
-                  <a className={styles["ext"]} href={dartUrl(s.name)} target="_blank" rel="noreferrer">
-                    지금은 DART 전자공시에서 원문 보기 ↗
+                  <a className={styles["ext"]} href={DART_SEARCH_URL} target="_blank" rel="noreferrer">
+                    지금은 DART 전자공시에서 &quot;{s.name}&quot; 검색 ↗
                   </a>
                 </section>
               </div>
