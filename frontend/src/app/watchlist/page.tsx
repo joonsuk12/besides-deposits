@@ -1,20 +1,22 @@
 "use client";
 
 // 내 관심종목 화면 (주소: /watchlist).
-// 종목마다 최근 종가, 최신 증권사 리포트 요약, 이번 주 많이 다뤄진 뉴스를 한눈에 본다.
-// 공시(사업보고서 등)는 4단계에서 붙일 예정이라 지금은 DART 검색으로 보낸다.
+// 종목마다 최근 종가, 최신 증권사 리포트 요약, 이번 주 많이 다뤄진 뉴스, 최근 공시를 한눈에 본다.
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import DisclosureList from "@/components/DisclosureList/DisclosureList";
 import NewsList from "@/components/NewsList/NewsList";
 import ReportCard from "@/components/ReportCard/ReportCard";
 import StockProfile from "@/components/StockProfile/StockProfile";
 import {
+  fetchStockDisclosures,
   fetchStockNews,
   fetchStockReports,
   fetchWatchlist,
   removeWatch,
+  type DisclosureList as Disclosures,
   type News,
   type Report,
   type WatchlistItem,
@@ -23,10 +25,7 @@ import styles from "./watchlist.module.css";
 
 const won = (n: number) => n.toLocaleString("ko-KR");
 
-// DART는 주소로 회사명을 미리 채울 수 없어 검색 화면으로만 보낸다 (2026-11-12 확인)
-const DART_SEARCH_URL = "https://dart.fss.or.kr/dsab007/main.do";
-
-type Extra = { reports: Report[]; news: News[] };
+type Extra = { reports: Report[]; news: News[]; disclosures: Disclosures | null };
 
 export default function WatchlistPage() {
   const [items, setItems] = useState<WatchlistItem[] | null>(null);
@@ -39,8 +38,12 @@ export default function WatchlistPage() {
         setItems(list);
         // 종목마다 리포트·뉴스를 따로 불러와 도착하는 대로 채운다
         for (const s of list) {
-          Promise.all([fetchStockReports(s.code, 3).catch(() => []), fetchStockNews(s.code, 7).catch(() => [])]).then(
-            ([reports, news]) => setExtra((prev) => ({ ...prev, [s.code]: { reports, news } })),
+          Promise.all([
+            fetchStockReports(s.code, 3).catch(() => []),
+            fetchStockNews(s.code, 7).catch(() => []),
+            fetchStockDisclosures(s.code, 90).catch(() => null),
+          ]).then(([reports, news, disclosures]) =>
+            setExtra((prev) => ({ ...prev, [s.code]: { reports, news, disclosures } })),
           );
         }
       })
@@ -119,9 +122,24 @@ export default function WatchlistPage() {
                   {ex && <NewsList items={topNews} empty="최근 7일 동안 뉴스가 없습니다." />}
                 </section>
               </div>
-              <a className={styles["ext"]} href={DART_SEARCH_URL} target="_blank" rel="noreferrer">
-                공시·사업보고서는 DART 전자공시에서 &quot;{s.name}&quot; 검색 ↗ (4단계에서 쉬운 요약으로 붙일 예정)
-              </a>
+              <section className={`${styles["section"]} ${styles["disclosure"]}`}>
+                <h2>📢 최근 3개월 공시</h2>
+                {!ex && <p className={styles["placeholder"]}>불러오는 중…</p>}
+                {ex && !ex.disclosures && <p className={styles["placeholder"]}>공시를 불러오지 못했습니다.</p>}
+                {ex?.disclosures && !ex.disclosures.available && (
+                  <p className={styles["placeholder"]}>{ex.disclosures.message}</p>
+                )}
+                {ex?.disclosures?.available && (
+                  <>
+                    {ex.disclosures.message && <p className={styles["placeholder"]}>{ex.disclosures.message}</p>}
+                    <DisclosureList
+                      items={ex.disclosures.items}
+                      hideInfo
+                      empty="최근 3개월 동안 공시가 없습니다. ETF는 회사 공시가 없어요."
+                    />
+                  </>
+                )}
+              </section>
             </article>
           );
         })}

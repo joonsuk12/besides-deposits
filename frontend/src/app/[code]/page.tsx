@@ -3,11 +3,12 @@
 // 종목 차트 화면 (주소: /005930). NewStocks의 종목 화면 배치를 따른다.
 //   왼쪽: 관심 종목 목록
 //   가운데: 차트(뉴스 N·리포트 R 표시) → 많이 다뤄진 뉴스 키포인트 → 최근 뉴스
-//   오른쪽: 선택한 날의 가격·뉴스·리포트 → 이 종목의 최근 증권사 리포트 → 캔들 읽는 법
+//   오른쪽: 선택한 날의 가격·공시·리포트·뉴스 → 최근 공시 → 이 종목의 최근 증권사 리포트 → 캔들 읽는 법
 
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { FaRegStar, FaStar } from "react-icons/fa";
 
+import DisclosureList from "@/components/DisclosureList/DisclosureList";
 import NewsList from "@/components/NewsList/NewsList";
 import ReportCard from "@/components/ReportCard/ReportCard";
 import StockChart, { type DayMarks } from "@/components/StockChart";
@@ -17,10 +18,12 @@ import {
   addWatch,
   fetchPrices,
   fetchStock,
+  fetchStockDisclosures,
   fetchStockNews,
   fetchStockReports,
   fetchWatchlist,
   removeWatch,
+  type DisclosureList as Disclosures,
   type News,
   type Price,
   type Report,
@@ -54,6 +57,7 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
   const [prices, setPrices] = useState<Price[]>([]);
   const [news, setNews] = useState<News[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
+  const [disclosures, setDisclosures] = useState<Disclosures | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -68,11 +72,13 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
     setError(null);
     setNews([]);
     setReports([]);
+    setDisclosures(null);
     fetchStock(code)
       .then(setStock)
       .catch(() => setError("종목을 찾을 수 없거나 백엔드(8100번 포트)가 꺼져 있습니다."));
     fetchStockNews(code, 365).then(setNews).catch(() => {});
     fetchStockReports(code, 20).then(setReports).catch(() => {});
+    fetchStockDisclosures(code, 365).then(setDisclosures).catch(() => {});
   }, [code]);
 
   useEffect(() => {
@@ -96,6 +102,7 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
     const tradingDays = prices.map((p) => p.date);
     const newsByDay = new Map<string, News[]>();
     const reportsByDay = new Map<string, Report[]>();
+    const disclosuresByDay = new Map<string, Disclosures["items"]>();
     for (const n of news) {
       const d = toTradingDay(n.date, tradingDays);
       if (d) newsByDay.set(d, [...(newsByDay.get(d) ?? []), n]);
@@ -104,11 +111,22 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
       const d = toTradingDay(r.write_date, tradingDays);
       if (d) reportsByDay.set(d, [...(reportsByDay.get(d) ?? []), r]);
     }
-    return { newsByDay, reportsByDay };
-  }, [prices, news, reports]);
+    for (const d of disclosures?.items ?? []) {
+      const day = toTradingDay(d.date, tradingDays);
+      if (day) disclosuresByDay.set(day, [...(disclosuresByDay.get(day) ?? []), d]);
+    }
+    return { newsByDay, reportsByDay, disclosuresByDay };
+  }, [prices, news, reports, disclosures]);
 
   const marks: DayMarks = useMemo(
-    () => ({ newsDates: new Set(byDay.newsByDay.keys()), reportDates: new Set(byDay.reportsByDay.keys()) }),
+    () => ({
+      newsDates: new Set(byDay.newsByDay.keys()),
+      reportDates: new Set(byDay.reportsByDay.keys()),
+      // 참고용(정기 보고서·지분 보고)은 너무 많아서 차트에는 중요 공시만 표시한다
+      disclosureDates: new Set(
+        [...byDay.disclosuresByDay].filter(([, list]) => list.some((d) => d.level !== "info")).map(([day]) => day),
+      ),
+    }),
     [byDay],
   );
 
@@ -146,6 +164,7 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
   const dayChange = selected?.before ? selected.day.close - selected.before.close : null;
   const dayNews = selectedDate ? (byDay.newsByDay.get(selectedDate) ?? []) : [];
   const dayReports = selectedDate ? (byDay.reportsByDay.get(selectedDate) ?? []) : [];
+  const dayDisclosures = selectedDate ? (byDay.disclosuresByDay.get(selectedDate) ?? []) : [];
 
   return (
     <div className={styles["mainpage"]}>
@@ -196,7 +215,8 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
           )}
         </div>
         <p className={styles["hint"]}>
-          <b className={styles["mark-n"]}>N</b> 뉴스가 있는 날 · <b className={styles["mark-r"]}>R</b> 증권사 리포트가 나온 날 —
+          <b className={styles["mark-n"]}>N</b> 뉴스가 있는 날 · <b className={styles["mark-r"]}>R</b> 증권사 리포트가 나온 날 ·{" "}
+          <b className={styles["mark-d"]}>D</b> 중요 공시가 나온 날 —
           차트에서 날짜를 누르면 그날의 내용이 오른쪽에 나옵니다.
         </p>
 
@@ -236,6 +256,12 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
               <dd>{won(selected.day.volume)}주</dd>
             </dl>
 
+            {dayDisclosures.length > 0 && (
+              <div className={styles["day-section"]}>
+                <h3>📢 이날의 공시</h3>
+                <DisclosureList items={dayDisclosures} />
+              </div>
+            )}
             {dayReports.length > 0 && (
               <div className={styles["day-section"]}>
                 <h3>📄 이날 나온 리포트</h3>
@@ -252,6 +278,19 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
             </div>
           </section>
         )}
+
+        <section className={styles["card"]}>
+          <h2>📢 최근 공시</h2>
+          {!disclosures && <p className={styles["placeholder"]}>불러오는 중…</p>}
+          {disclosures && !disclosures.available && <p className={styles["placeholder"]}>{disclosures.message}</p>}
+          {disclosures?.available && (
+            <DisclosureList
+              items={disclosures.items.slice(0, 15)}
+              hideInfo
+              empty="최근 1년 동안 공시가 없습니다. ETF는 회사 공시가 없어요."
+            />
+          )}
+        </section>
 
         <section className={styles["card"]}>
           <h2>증권사 리포트</h2>
