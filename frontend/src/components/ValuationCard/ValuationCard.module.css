@@ -111,3 +111,25 @@
   color: var(--mint);
   text-decoration: underline;
 }
+
+/* 이 업종에서 무엇을 더 보는지 */
+.focus {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--mint);
+  background: rgba(79, 231, 176, 0.07);
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.focus p {
+  margin: 4px 0 0;
+  line-height: 1.55;
+  color: #d6d8e0;
+}
+
+.star {
+  margin-left: -4px;
+  color: var(--mint);
+  cursor: help;
+}

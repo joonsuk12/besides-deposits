@@ -28,4 +28,7 @@ class ValuationResponse(BaseModel):
     pbr_gap_pct: float | None = None
     per_comment: str | None = None
     pbr_comment: str | None = None
+    focus: str | None = None  # per / pbr / both / none: 이 업종에서 더 보는 지표
+    focus_title: str | None = None
+    focus_reason: str | None = None
     peers: list[PeerValuation] = []
