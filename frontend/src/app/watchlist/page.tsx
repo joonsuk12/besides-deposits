@@ -139,7 +139,8 @@ export default function WatchlistPage() {
                     {ex.disclosures.message && <p className={styles["placeholder"]}>{ex.disclosures.message}</p>}
                     <DisclosureList
                       items={ex.disclosures.items}
-                      hideInfo
+                      limit={3}
+                      skipInfo
                       empty="최근 3개월 동안 공시가 없습니다. ETF는 회사 공시가 없어요."
                     />
                   </>
