@@ -107,6 +107,8 @@ export type Valuation = {
   focus: "per" | "pbr" | "both" | "none" | null;
   focus_title: string | null;
   focus_reason: string | null;
+  focus_also: string[];
+  focus_caution: string | null;
   peers: { code: string; name: string; per: number | null; pbr: number | null }[];
 };
 

@@ -31,4 +31,6 @@ class ValuationResponse(BaseModel):
     focus: str | None = None  # per / pbr / both / none: 이 업종에서 더 보는 지표
     focus_title: str | None = None
     focus_reason: str | None = None
+    focus_also: list[str] = []  # PER·PBR과 함께 볼 것
+    focus_caution: str | None = None  # 이 업종에서 흔한 착각
     peers: list[PeerValuation] = []

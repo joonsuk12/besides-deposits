@@ -65,6 +65,8 @@ def get_by_stock(db: Session, code: str) -> ValuationResponse:
         focus=rule.focus,
         focus_title=rule.title,
         focus_reason=rule.reason,
+        focus_also=list(rule.also),
+        focus_caution=rule.caution,
         peers=[PeerValuation(code=p.stock_code, name=p.name, per=p.per, pbr=p.pbr) for p in peers],
     )
 

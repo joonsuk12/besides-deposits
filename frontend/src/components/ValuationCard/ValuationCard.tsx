@@ -60,6 +60,17 @@ export default function ValuationCard({ code, compact = false }: { code: string;
         <div className={styles["focus"]}>
           <b>👉 {v.focus_title}</b>
           {!compact && v.focus_reason && <p>{v.focus_reason}</p>}
+          {!compact && v.focus_also.length > 0 && (
+            <>
+              <p className={styles["sub-h"]}>함께 볼 것</p>
+              <ul>
+                {v.focus_also.map((a) => (
+                  <li key={a}>{a}</li>
+                ))}
+              </ul>
+            </>
+          )}
+          {!compact && v.focus_caution && <p className={styles["caution"]}>⚠️ {v.focus_caution}</p>}
         </div>
       )}
       <div className={styles["rows"]}>
