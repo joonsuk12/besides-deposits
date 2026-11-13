@@ -2,7 +2,8 @@
 
 // 종목 차트 화면 (주소: /005930). NewStocks의 종목 화면 배치를 따른다.
 //   왼쪽: 관심 종목 목록
-//   가운데: 차트(뉴스 N·리포트 R 표시) → 많이 다뤄진 뉴스 키포인트 → 최근 뉴스
+//   가운데: 차트(뉴스 N·리포트 R·공시 D 표시) → 이번 주 많이 다뤄진 뉴스 3개
+//   (뉴스·공시·리포트는 3개씩만 먼저 보여주고 나머지는 "더 보기" — 초보가 정보에 묻히지 않게)
 //   오른쪽: 선택한 날의 가격·공시·리포트·뉴스 → 최근 공시 → 이 종목의 최근 증권사 리포트 → 캔들 읽는 법
 
 import { use, useCallback, useEffect, useMemo, useState } from "react";
@@ -11,6 +12,7 @@ import { FaRegStar, FaStar } from "react-icons/fa";
 import DisclosureList from "@/components/DisclosureList/DisclosureList";
 import NewsList from "@/components/NewsList/NewsList";
 import ReportCard from "@/components/ReportCard/ReportCard";
+import ShowMore from "@/components/ShowMore/ShowMore";
 import StockChart, { type DayMarks } from "@/components/StockChart";
 import StockProfile from "@/components/StockProfile/StockProfile";
 import ValuationCard from "@/components/ValuationCard/ValuationCard";
@@ -137,7 +139,7 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
     return news
       .filter((n) => n.date >= weekAgo && n.cluster_size > 1)
       .sort((a, b) => b.cluster_size - a.cluster_size)
-      .slice(0, 5);
+      .slice(0, 3); // 초보에게는 가장 많이 다뤄진 3개면 충분하다
   }, [news]);
 
   const toggleWatch = async () => {
@@ -163,7 +165,10 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
     return i < 0 ? null : { day: prices[i], before: prices[i - 1] };
   }, [prices, selectedDate]);
   const dayChange = selected?.before ? selected.day.close - selected.before.close : null;
-  const dayNews = selectedDate ? (byDay.newsByDay.get(selectedDate) ?? []) : [];
+  // 그날 뉴스는 여러 언론사가 다룬(기사가 많이 겹친) 순서로
+  const dayNews = selectedDate
+    ? [...(byDay.newsByDay.get(selectedDate) ?? [])].sort((a, b) => b.cluster_size - a.cluster_size)
+    : [];
   const dayReports = selectedDate ? (byDay.reportsByDay.get(selectedDate) ?? []) : [];
   const dayDisclosures = selectedDate ? (byDay.disclosuresByDay.get(selectedDate) ?? []) : [];
 
@@ -226,11 +231,6 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
           <p className={styles["desc"]}>여러 언론사가 같은 내용을 다룰수록 중요한 소식일 가능성이 큽니다.</p>
           <NewsList items={keyNews} empty="최근 7일 동안 여러 언론사가 함께 다룬 뉴스가 없습니다." />
         </section>
-
-        <section className={styles["news"]}>
-          <h2>최근 뉴스</h2>
-          <NewsList items={news.slice(0, 15)} empty="뉴스를 불러오는 중이거나 없습니다." />
-        </section>
       </main>
 
       <aside className={styles["side-container"]}>
@@ -260,22 +260,30 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
             {dayDisclosures.length > 0 && (
               <div className={styles["day-section"]}>
                 <h3>📢 이날의 공시</h3>
-                <DisclosureList items={dayDisclosures} />
+                <DisclosureList key={selectedDate} items={dayDisclosures} limit={3} />
               </div>
             )}
             {dayReports.length > 0 && (
               <div className={styles["day-section"]}>
                 <h3>📄 이날 나온 리포트</h3>
-                <div className={styles["stack"]}>
-                  {dayReports.map((r) => (
-                    <ReportCard key={r.nid} report={r} compact showStock={false} />
-                  ))}
-                </div>
+                <ShowMore key={selectedDate} items={dayReports} limit={3}>
+                  {(shown) => (
+                    <div className={styles["stack"]}>
+                      {shown.map((r) => (
+                        <ReportCard key={r.nid} report={r} compact showStock={false} />
+                      ))}
+                    </div>
+                  )}
+                </ShowMore>
               </div>
             )}
             <div className={styles["day-section"]}>
-              <h3>📰 이날의 뉴스</h3>
-              <NewsList items={dayNews} empty="이날 수집된 뉴스가 없습니다. (최근 뉴스 위주로 모읍니다)" />
+              <h3>📰 이날의 주요 뉴스</h3>
+              <ShowMore key={selectedDate} items={dayNews} limit={3}>
+                {(shown) => (
+                  <NewsList items={shown} empty="이날 수집된 뉴스가 없습니다. (최근 뉴스 위주로 모읍니다)" />
+                )}
+              </ShowMore>
             </div>
           </section>
         )}
@@ -291,8 +299,10 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
           {disclosures && !disclosures.available && <p className={styles["placeholder"]}>{disclosures.message}</p>}
           {disclosures?.available && (
             <DisclosureList
-              items={disclosures.items.slice(0, 15)}
-              hideInfo
+              key={code}
+              items={disclosures.items}
+              limit={3}
+              skipInfo
               empty="최근 1년 동안 공시가 없습니다. ETF는 회사 공시가 없어요."
             />
           )}
@@ -300,12 +310,16 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
 
         <section className={styles["card"]}>
           <h2>증권사 리포트</h2>
-          <div className={styles["stack"]}>
-            {reports.slice(0, 5).map((r) => (
-              <ReportCard key={r.nid} report={r} compact showStock={false} />
-            ))}
-            {reports.length === 0 && <p className={styles["placeholder"]}>최근 나온 리포트가 없습니다. ETF나 소형주는 리포트가 드뭅니다.</p>}
-          </div>
+          {reports.length === 0 && <p className={styles["placeholder"]}>최근 나온 리포트가 없습니다. ETF나 소형주는 리포트가 드뭅니다.</p>}
+          <ShowMore key={code} items={reports} limit={3}>
+            {(shown) => (
+              <div className={styles["stack"]}>
+                {shown.map((r) => (
+                  <ReportCard key={r.nid} report={r} compact showStock={false} />
+                ))}
+              </div>
+            )}
+          </ShowMore>
         </section>
 
         <section className={`${styles["card"]} ${styles["guide"]}`}>
