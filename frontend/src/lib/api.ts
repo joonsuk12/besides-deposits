@@ -100,3 +100,23 @@ export async function goToStart() {
   }
   window.location.href = `/${code}`;
 }
+
+export type Disclosure = {
+  rcept_no: string;
+  stock_code: string;
+  corp_name: string;
+  title: string;
+  filer: string;
+  date: string;
+  url: string;
+  category: string;
+  level: "warn" | "good" | "key" | "info";
+  explain: string;
+  is_correction: boolean;
+  by_company: boolean;
+};
+
+export type DisclosureList = { available: boolean; message: string | null; items: Disclosure[] };
+
+export const fetchStockDisclosures = (code: string, days = 180) =>
+  request<DisclosureList>(`/disclosures/stock/${code}?days=${days}`);

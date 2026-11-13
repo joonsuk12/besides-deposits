@@ -2,7 +2,7 @@
 
 // 캔들 차트. TradingView Lightweight Charts를 감싼 컴포넌트 (NewStocks와 같은 라이브러리, 버전 5).
 // - prices를 받아 캔들 + 거래량을 그린다
-// - markers: 뉴스(N, 캔들 아래)와 리포트(R, 캔들 위)가 있는 날 표시 (NewStocks의 N·R 표시와 같은 방식)
+// - markers: 뉴스(N, 캔들 아래), 리포트(R, 캔들 위), 중요 공시(D, 캔들 위)가 있는 날 표시 (NewStocks의 N·R 표시와 같은 방식)
 // - 마우스를 올리면 그날 시가·고가·저가·종가·거래량 툴팁
 // - 날짜를 누르면 onSelectDate로 그 날짜를 알려준다
 
@@ -23,7 +23,7 @@ import type { Price } from "@/lib/api";
 const UP = "#ff5a5a";
 const DOWN = "#5b9bff";
 
-export type DayMarks = { newsDates: Set<string>; reportDates: Set<string> };
+export type DayMarks = { newsDates: Set<string>; reportDates: Set<string>; disclosureDates: Set<string> };
 
 type Props = {
   prices: Price[];
@@ -84,6 +84,9 @@ export default function StockChart({ prices, marks, onSelectDate }: Props) {
         if (marks.reportDates.has(p.date)) {
           list.push({ time: p.date, position: "aboveBar", color: "#ff7ad9", shape: "circle", text: "R" });
         }
+        if (marks.disclosureDates.has(p.date)) {
+          list.push({ time: p.date, position: "aboveBar", color: "#ffc861", shape: "square", text: "D" });
+        }
         if (marks.newsDates.has(p.date)) {
           list.push({ time: p.date, position: "belowBar", color: "#b4ff4a", shape: "circle", text: "N" });
         }
@@ -120,6 +123,7 @@ export default function StockChart({ prices, marks, onSelectDate }: Props) {
       const tags = [
         marks?.newsDates.has(bar.time) ? "📰 뉴스" : "",
         marks?.reportDates.has(bar.time) ? "📄 리포트" : "",
+        marks?.disclosureDates.has(bar.time) ? "📢 공시" : "",
       ].filter(Boolean);
       tooltip.innerHTML = `
         <div class="tt-date">${bar.time}</div>

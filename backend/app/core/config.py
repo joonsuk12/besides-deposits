@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     database_url: str = f"sqlite:///{(DATA_DIR / 'stroll.db').as_posix()}"
     # 프론트엔드(Next.js) 주소. 여기 적힌 곳에서 오는 요청만 허용한다 (CORS).
     cors_origins: list[str] = ["http://localhost:3000"]
+    # OpenDART 인증키 (https://opendart.fss.or.kr, 무료). .env의 DART_API_KEY. 없으면 공시 기능만 꺼진다.
+    dart_api_key: str | None = None
 
 
 settings = Settings()
