@@ -2,9 +2,9 @@
 
 // 종목 차트 화면 (주소: /005930). NewStocks의 종목 화면 배치를 따른다.
 //   왼쪽: 관심 종목 목록
-//   가운데: 차트(뉴스 N·리포트 R·공시 D 표시) → 이번 주 많이 다뤄진 뉴스 3개
+//   가운데: 차트(뉴스 N·리포트 R·공시 D 표시) → 선택한 날(가격 한 줄 + 그날 뉴스 | 공시·리포트) → 이번 주 많이 다뤄진 뉴스 3개
 //   (뉴스·공시·리포트는 3개씩만 먼저 보여주고 나머지는 "더 보기" — 초보가 정보에 묻히지 않게)
-//   오른쪽: 선택한 날의 가격·공시·리포트·뉴스 → 최근 공시 → 이 종목의 최근 증권사 리포트 → 캔들 읽는 법
+//   오른쪽: 이 종목 요약 — 주가 수준(PER·PBR) → 최근 공시 → 최근 증권사 리포트 → 캔들 읽는 법
 
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { FaRegStar, FaStar } from "react-icons/fa";
@@ -44,6 +44,7 @@ const PERIODS = [
 const won = (n: number) => n.toLocaleString("ko-KR");
 const tone = (n: number) => (n > 0 ? "up" : n < 0 ? "down" : "");
 const sign = (n: number) => (n > 0 ? "+" : "");
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 // 주말·휴일에 나온 뉴스·리포트는 그다음 거래일 캔들에 붙인다
 function toTradingDay(date: string, tradingDays: string[]): string | null {
@@ -223,50 +224,45 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
         <p className={styles["hint"]}>
           <b className={styles["mark-n"]}>N</b> 뉴스가 있는 날 · <b className={styles["mark-r"]}>R</b> 증권사 리포트가 나온 날 ·{" "}
           <b className={styles["mark-d"]}>D</b> 중요 공시가 나온 날 —
-          차트에서 날짜를 누르면 그날의 내용이 오른쪽에 나옵니다.
+          차트에서 날짜를 누르면 그날의 내용이 바로 아래에 나옵니다.
         </p>
 
-        <section className={styles["news"]}>
-          <h2>📰 이번 주 많이 다뤄진 뉴스</h2>
-          <p className={styles["desc"]}>여러 언론사가 같은 내용을 다룰수록 중요한 소식일 가능성이 큽니다.</p>
-          <NewsList items={keyNews} empty="최근 7일 동안 여러 언론사가 함께 다룬 뉴스가 없습니다." />
-        </section>
-      </main>
-
-      <aside className={styles["side-container"]}>
+        {/* 선택한 날: 차트 바로 아래. 가격은 한 줄 띠로, 그날 내용은 두 칸(왼쪽 뉴스 / 오른쪽 공시·리포트) */}
         {selected && (
-          <section className={styles["card"]}>
-            <h2>{selected.day.date}</h2>
-            {dayChange !== null && selected.before && (
-              <p className={`${styles["day-change"]} ${tone(dayChange)}`}>
-                전날보다 {sign(dayChange)}
-                {won(dayChange)}원 ({sign(dayChange)}
-                {((dayChange / selected.before.close) * 100).toFixed(2)}%)
-              </p>
-            )}
-            <dl className={styles["ohlc"]}>
-              <dt>시가</dt>
-              <dd>{won(selected.day.open)}</dd>
-              <dt>고가</dt>
-              <dd>{won(selected.day.high)}</dd>
-              <dt>저가</dt>
-              <dd>{won(selected.day.low)}</dd>
-              <dt>종가</dt>
-              <dd>{won(selected.day.close)}</dd>
-              <dt>거래량</dt>
-              <dd>{won(selected.day.volume)}주</dd>
-            </dl>
+          <section className={styles["day-panel"]}>
+            <div className={styles["day-strip"]}>
+              <b className={styles["day-date"]}>
+                {selected.day.date} ({WEEKDAYS[new Date(selected.day.date).getDay()]})
+              </b>
+              <span>
+                종가 <b>{won(selected.day.close)}</b>
+                {dayChange !== null && selected.before && (
+                  <span className={tone(dayChange)}>
+                    {" "}
+                    {sign(dayChange)}
+                    {((dayChange / selected.before.close) * 100).toFixed(2)}%
+                  </span>
+                )}
+              </span>
+              <span className={styles["sub"]}>
+                시 {won(selected.day.open)} · 고 {won(selected.day.high)} · 저 {won(selected.day.low)}
+              </span>
+              <span className={styles["sub"]}>거래량 {won(selected.day.volume)}주</span>
+            </div>
 
-            {dayDisclosures.length > 0 && (
-              <div className={styles["day-section"]}>
-                <h3>📢 이날의 공시</h3>
-                <DisclosureList key={selectedDate} items={dayDisclosures} limit={3} />
+            <div className={styles["day-cols"]}>
+              <div>
+                <h3>📰 이날의 주요 뉴스</h3>
+                <ShowMore key={`news-${selectedDate}`} items={dayNews} limit={3}>
+                  {(shown) => <NewsList items={shown} empty="이날 수집된 뉴스가 없습니다. (최근 뉴스 위주로 모읍니다)" />}
+                </ShowMore>
               </div>
-            )}
-            {dayReports.length > 0 && (
-              <div className={styles["day-section"]}>
-                <h3>📄 이날 나온 리포트</h3>
-                <ShowMore key={selectedDate} items={dayReports} limit={3}>
+              <div>
+                <h3>📢 이날의 공시</h3>
+                <DisclosureList key={`disc-${selectedDate}`} items={dayDisclosures} limit={3} empty="이날 나온 공시가 없습니다." />
+                <h3 className={styles["day-sub-h"]}>📄 이날 나온 리포트</h3>
+                {dayReports.length === 0 && <p className={styles["placeholder"]}>이날 나온 리포트가 없습니다.</p>}
+                <ShowMore key={`report-${selectedDate}`} items={dayReports} limit={3}>
                   {(shown) => (
                     <div className={styles["stack"]}>
                       {shown.map((r) => (
@@ -276,18 +272,19 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
                   )}
                 </ShowMore>
               </div>
-            )}
-            <div className={styles["day-section"]}>
-              <h3>📰 이날의 주요 뉴스</h3>
-              <ShowMore key={selectedDate} items={dayNews} limit={3}>
-                {(shown) => (
-                  <NewsList items={shown} empty="이날 수집된 뉴스가 없습니다. (최근 뉴스 위주로 모읍니다)" />
-                )}
-              </ShowMore>
             </div>
           </section>
         )}
 
+        <section className={styles["news"]}>
+          <h2>📰 이번 주 많이 다뤄진 뉴스</h2>
+          <p className={styles["desc"]}>여러 언론사가 같은 내용을 다룰수록 중요한 소식일 가능성이 큽니다.</p>
+          <NewsList items={keyNews} empty="최근 7일 동안 여러 언론사가 함께 다룬 뉴스가 없습니다." />
+        </section>
+      </main>
+
+      {/* 오른쪽: 날짜와 상관없는 이 종목 요약 */}
+      <aside className={styles["side-container"]}>
         <section className={styles["card"]}>
           <h2>💰 주가 수준 (PER·PBR)</h2>
           <ValuationCard code={code} />

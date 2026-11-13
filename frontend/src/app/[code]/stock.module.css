@@ -64,10 +64,6 @@
 }
 
 .change,
-.day-change {
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
 
 .asof {
   color: var(--sub);
@@ -131,26 +127,9 @@
   padding: 4px 16px 16px;
 }
 
-.day-change {
-  margin: 0 0 10px;
-}
 
-.ohlc {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 4px 16px;
-  margin: 0;
-}
 
-.ohlc dt {
-  color: var(--sub);
-}
 
-.ohlc dd {
-  margin: 0;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
 
 .guide ul {
   margin: 0;
@@ -192,16 +171,7 @@
   color: #ff7ad9;
 }
 
-.day-section {
-  margin-top: 14px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--line);
-}
 
-.day-section h3 {
-  margin: 0 0 6px;
-  font-size: 14px;
-}
 
 .stack {
   display: grid;
@@ -211,4 +181,51 @@
 
 .mark-d {
   color: #ffc861;
+}
+
+/* 선택한 날 (차트 바로 아래) */
+.day-panel {
+  margin-top: 14px;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--mint);
+  border-radius: 10px;
+}
+
+.day-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+  padding: 8px 12px;
+  background: rgba(176, 176, 176, 0.08);
+  border-radius: 8px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.day-date {
+  font-size: 15px;
+}
+
+.sub {
+  color: var(--sub);
+  font-size: 13px;
+}
+
+/* 그날 내용: 왼쪽 뉴스, 오른쪽 공시·리포트. 좁으면 한 칸으로 */
+.day-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 8px 20px;
+  margin-top: 6px;
+}
+
+.day-cols h3 {
+  margin: 10px 0 4px;
+  font-size: 14px;
+}
+
+.day-sub-h {
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
 }
