@@ -141,6 +141,8 @@ export type Disclosure = {
   category: string;
   level: "warn" | "good" | "key" | "info";
   explain: string;
+  why: string | null;
+  checks: string[];
   is_correction: boolean;
   by_company: boolean;
 };
