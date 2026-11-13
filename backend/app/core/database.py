@@ -42,5 +42,6 @@ def create_tables() -> None:
     from app.news import models as news_models  # noqa: F401
     from app.report import models as report_models  # noqa: F401
     from app.stock import models as stock_models  # noqa: F401
+    from app.valuation import models as valuation_models  # noqa: F401
 
     Base.metadata.create_all(engine)

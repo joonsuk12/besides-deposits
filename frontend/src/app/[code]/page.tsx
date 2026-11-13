@@ -13,6 +13,7 @@ import NewsList from "@/components/NewsList/NewsList";
 import ReportCard from "@/components/ReportCard/ReportCard";
 import StockChart, { type DayMarks } from "@/components/StockChart";
 import StockProfile from "@/components/StockProfile/StockProfile";
+import ValuationCard from "@/components/ValuationCard/ValuationCard";
 import WatchlistSidebar from "@/components/WatchlistSidebar/WatchlistSidebar";
 import {
   addWatch,
@@ -278,6 +279,11 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
             </div>
           </section>
         )}
+
+        <section className={styles["card"]}>
+          <h2>💰 주가 수준 (PER·PBR)</h2>
+          <ValuationCard code={code} />
+        </section>
 
         <section className={styles["card"]}>
           <h2>📢 최근 공시</h2>

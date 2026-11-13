@@ -10,19 +10,20 @@ import time
 import requests
 
 BASE_URL = "https://stock.naver.com"
+MOBILE_BASE_URL = "https://m.stock.naver.com"  # 종목 지표(PER·PBR)와 업종 정보는 모바일 쪽 주소에만 있다
 HEADERS = {"User-Agent": "Mozilla/5.0", "Referer": "https://stock.naver.com/"}
 REQUEST_GAP_SECONDS = 0.5
 
 _last_request_at = 0.0
 
 
-def get_json(path: str, params: dict | list | None = None):
+def get_json(path: str, params: dict | list | None = None, base_url: str = BASE_URL):
     global _last_request_at
     wait = REQUEST_GAP_SECONDS - (time.monotonic() - _last_request_at)
     if wait > 0:
         time.sleep(wait)
     try:
-        res = requests.get(BASE_URL + path, params=params, headers=HEADERS, timeout=10)
+        res = requests.get(base_url + path, params=params, headers=HEADERS, timeout=10)
     finally:
         _last_request_at = time.monotonic()
     res.raise_for_status()
