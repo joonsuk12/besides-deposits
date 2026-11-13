@@ -56,11 +56,20 @@ export default function ValuationCard({ code, compact = false }: { code: string;
   return (
     <div>
       {v.industry_name && <p className={styles["industry"]}>업종: {v.industry_name} · 비교 기준은 같은 업종 주요 {v.peers.length}곳의 중간값</p>}
+      {v.focus_title && (
+        <div className={styles["focus"]}>
+          <b>👉 {v.focus_title}</b>
+          {!compact && v.focus_reason && <p>{v.focus_reason}</p>}
+        </div>
+      )}
       <div className={styles["rows"]}>
         {rows.map((r) => (
           <div key={r.label} className={styles["row"]}>
             <div className={styles["head"]}>
               <b title={r.hint}>{r.label}</b>
+              {(v.focus === r.label.toLowerCase() || v.focus === "both") && (
+                <span className={styles["star"]} title="이 업종에서 주로 보는 지표">★</span>
+              )}
               <span className={styles["mine"]}>{times(r.mine)}</span>
               <span className={styles["vs"]}>업종 {times(r.industry)}</span>
               <Gap pct={r.gap} />

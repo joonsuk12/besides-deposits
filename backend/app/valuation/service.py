@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.core import fetch_log
 from app.stock import repository as stock_repository
-from app.valuation import client, repository
+from app.valuation import client, focus, repository
 from app.valuation.models import Fundamental
 from app.valuation.schemas import PeerValuation, ValuationResponse
 
@@ -44,6 +44,7 @@ def get_by_stock(db: Session, code: str) -> ValuationResponse:
     industry_pbr = _median([p.pbr for p in peers])
     per_gap = _gap(per, industry_per)
     pbr_gap = _gap(pbr, industry_pbr)
+    rule = focus.decide(me.industry_name, me.eps)
 
     return ValuationResponse(
         available=True,
@@ -61,6 +62,9 @@ def get_by_stock(db: Session, code: str) -> ValuationResponse:
         pbr_gap_pct=pbr_gap,
         per_comment=_per_comment(me.eps, per, per_gap),
         pbr_comment=_comment(pbr_gap, "순자산"),
+        focus=rule.focus,
+        focus_title=rule.title,
+        focus_reason=rule.reason,
         peers=[PeerValuation(code=p.stock_code, name=p.name, per=p.per, pbr=p.pbr) for p in peers],
     )
 

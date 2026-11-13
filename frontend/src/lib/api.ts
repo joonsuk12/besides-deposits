@@ -104,6 +104,9 @@ export type Valuation = {
   pbr_gap_pct: number | null;
   per_comment: string | null;
   pbr_comment: string | null;
+  focus: "per" | "pbr" | "both" | "none" | null;
+  focus_title: string | null;
+  focus_reason: string | null;
   peers: { code: string; name: string; per: number | null; pbr: number | null }[];
 };
 
