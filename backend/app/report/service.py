@@ -2,15 +2,18 @@
 
 - 리포트가 필요할 때 DB에 없거나 오래됐으면 네이버에서 가져와 저장한다 (조회할 때 수집).
 - 저장된 리포트에 키포인트(한 줄 결론, 근거, 리스크, 용어)와 목표주가 변화를 붙여 DTO로 만든다.
+- '쉽게 말하면' 요약: 아직 요약이 없는 리포트를 내주고(get_easy_pending), Claude가 쓴 요약을 저장한다(save_easy).
 """
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.core import fetch_log
+from app.core.text import html_to_lines
 from app.report import client, keypoints, repository
-from app.report.models import Report
-from app.report.schemas import ReportFeedResponse, ReportResponse, Term
+from app.report.models import Report, ReportEasy
+from app.report.schemas import EasyPending, EasySaveRequest, EasySummary, ReportFeedResponse, ReportResponse, Term
 from app.stock import repository as stock_repository
 
 # 같은 데이터를 다시 가져오기 전까지 기다리는 시간 (분)
@@ -36,6 +39,49 @@ def get_by_stock(db: Session, code: str, limit: int) -> list[ReportResponse]:
             db.rollback()
             print(f"  리포트 수집 실패({code}): {e!r}")
     return [_to_response(db, r) for r in repository.find_by_stock(db, code, limit)]
+
+
+def get_easy_pending(db: Session, days: int, limit: int) -> list[EasyPending]:
+    """쉬운 요약이 아직 없는 최근 리포트 (관심 종목 먼저)."""
+    watched = [s.code for s in stock_repository.find_watched_stocks(db)]
+    since = date.today() - timedelta(days=days)
+    result = []
+    for r in repository.find_without_easy(db, watched, since, limit):
+        res = _to_response(db, r)
+        result.append(
+            EasyPending(
+                nid=r.nid,
+                item_name=r.item_name,
+                broker=r.broker,
+                write_date=r.write_date,
+                title=r.title,
+                opinion=res.opinion,
+                goal_price=r.goal_price,
+                goal_change=res.goal_change,
+                text="\n".join(html_to_lines(r.content_html)),
+            )
+        )
+    return result
+
+
+def save_easy(db: Session, items: list[EasySaveRequest]) -> int:
+    """Claude가 쓴 쉬운 요약을 저장한다. 없는 리포트 번호가 섞여 있으면 404."""
+    for item in items:
+        if repository.find_by_nid(db, item.nid) is None:
+            raise HTTPException(status_code=404, detail=f"리포트를 찾을 수 없습니다: {item.nid}")
+        repository.save_easy(
+            db,
+            ReportEasy(
+                nid=item.nid,
+                one_liner=item.one_liner.strip(),
+                story=item.story.strip(),
+                watch_out=(item.watch_out or "").strip() or None,
+                written_by=item.written_by,
+                written_at=datetime.now(),
+            ),
+        )
+    db.commit()
+    return len(items)
 
 
 def collect_recent_days(db: Session, days: int) -> int:
@@ -102,4 +148,9 @@ def _to_response(db: Session, r: Report) -> ReportResponse:
         points=kp.points,
         risks=kp.risks,
         terms=[Term(term=t, meaning=m) for t, m in kp.terms],
+        easy=_to_easy(repository.find_easy(db, r.nid)),
     )
+
+
+def _to_easy(e: ReportEasy | None) -> EasySummary | None:
+    return EasySummary(one_liner=e.one_liner, story=e.story, watch_out=e.watch_out) if e else None

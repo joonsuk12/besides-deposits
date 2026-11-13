@@ -1,6 +1,7 @@
 "use client";
 // 증권사 리포트 한 건을 초보용 틀로 보여주는 카드.
 // compact: 한 줄 결론과 숫자만 (목록용) / 기본: 근거·리스크·용어까지
+// Claude가 쓴 '쉽게 말하면' 요약(easy)이 있으면 맨 위에 보여주고, 증권사 결론은 펼쳤을 때 아래로 내린다.
 
 import Link from "next/link";
 import { useState } from "react";
@@ -36,7 +37,19 @@ export default function ReportCard({
         </span>
       </header>
 
-      <p className={styles["headline"]}>💡 {r.headline}</p>
+      {r.easy ? (
+        <div className={styles["easy"]}>
+          <p className={styles["easy-one"]}>🧒 {r.easy.one_liner}</p>
+          {open && (
+            <>
+              <p className={styles["easy-story"]}>{r.easy.story}</p>
+              {r.easy.watch_out && <p className={styles["easy-watch"]}>👀 {r.easy.watch_out}</p>}
+            </>
+          )}
+        </div>
+      ) : (
+        <p className={styles["headline"]}>💡 {r.headline}</p>
+      )}
 
       <div className={styles["badges"]}>
         {r.opinion && (
@@ -66,6 +79,12 @@ export default function ReportCard({
 
       {open && (
         <div className={styles["body"]}>
+          {r.easy && r.headline && (
+            <section>
+              <h4>증권사가 쓴 결론</h4>
+              <p className={styles["broker-headline"]}>{r.headline}</p>
+            </section>
+          )}
           {r.points.length > 0 && (
             <section>
               <h4>핵심 근거</h4>

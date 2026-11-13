@@ -144,3 +144,36 @@
 .actions a:hover {
   text-decoration: underline;
 }
+
+/* Claude가 쓴 '쉽게 말하면' 요약 */
+.easy {
+  margin: 8px 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--mint);
+  border-radius: 4px;
+  background: rgba(79, 231, 176, 0.07);
+}
+
+.easy-one {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.easy-story {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #e3e5ec;
+}
+
+.easy-watch {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #ffc861;
+}
+
+.broker-headline {
+  margin: 0;
+}

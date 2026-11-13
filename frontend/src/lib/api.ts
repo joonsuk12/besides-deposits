@@ -47,6 +47,8 @@ export type Report = {
   points: string[];
   risks: string[];
   terms: { term: string; meaning: string }[];
+  // Claude가 초보 말투로 다시 쓴 요약 (아직 없으면 null)
+  easy: { one_liner: string; story: string; watch_out: string | null } | null;
 };
 
 export type ReportFeed = { date: string; total: number; reports: Report[] };

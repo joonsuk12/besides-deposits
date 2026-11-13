@@ -1,12 +1,39 @@
 """DTO. Spring의 Response DTO에 해당한다."""
 import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Term(BaseModel):
     term: str
     meaning: str
+
+
+class EasySummary(BaseModel):
+    """'쉽게 말하면' 요약. 저장할 때(요청)와 보여줄 때(응답) 같이 쓴다."""
+
+    one_liner: str = Field(min_length=5, max_length=120)
+    story: str = Field(min_length=10, max_length=600)
+    watch_out: str | None = Field(default=None, max_length=300)
+
+
+class EasySaveRequest(EasySummary):
+    nid: str
+    written_by: str = "claude-code"
+
+
+class EasyPending(BaseModel):
+    """아직 쉬운 요약이 없는 리포트. 요약을 쓰는 쪽(Claude)에게 넘기는 재료."""
+
+    nid: str
+    item_name: str
+    broker: str
+    write_date: datetime.date
+    title: str
+    opinion: str | None
+    goal_price: int | None
+    goal_change: str | None
+    text: str  # 증권사 요약문 평문
 
 
 class ReportResponse(BaseModel):
@@ -32,6 +59,9 @@ class ReportResponse(BaseModel):
     points: list[str]  # 핵심 근거
     risks: list[str]  # 조심할 점
     terms: list[Term]  # 용어 풀이
+
+    # Claude가 쓴 쉬운 말 요약 (아직 없으면 None)
+    easy: EasySummary | None = None
 
 
 class ReportFeedResponse(BaseModel):
