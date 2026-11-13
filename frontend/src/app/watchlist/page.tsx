@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 
 import NewsList from "@/components/NewsList/NewsList";
 import ReportCard from "@/components/ReportCard/ReportCard";
+import ValuationCard from "@/components/ValuationCard/ValuationCard";
 import StockProfile from "@/components/StockProfile/StockProfile";
 import {
   fetchStockNews,
@@ -117,6 +118,10 @@ export default function WatchlistPage() {
                   <h2>📰 이번 주 주요 뉴스</h2>
                   {!ex && <p className={styles["placeholder"]}>불러오는 중…</p>}
                   {ex && <NewsList items={topNews} empty="최근 7일 동안 뉴스가 없습니다." />}
+                </section>
+                <section className={styles["section"]}>
+                  <h2>💰 주가 수준 (PER·PBR)</h2>
+                  <ValuationCard code={s.code} compact />
                 </section>
               </div>
               <a className={styles["ext"]} href={DART_SEARCH_URL} target="_blank" rel="noreferrer">

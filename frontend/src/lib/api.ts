@@ -85,6 +85,28 @@ export const fetchStockReports = (code: string, limit = 10) =>
   request<Report[]>(`/reports/stock/${code}?limit=${limit}`);
 export const fetchStockNews = (code: string, days = 90) => request<News[]>(`/news/stock/${code}?days=${days}`);
 
+export type Valuation = {
+  available: boolean;
+  message: string | null;
+  price: number | null;
+  price_date: string | null;
+  eps: number | null;
+  bps: number | null;
+  per: number | null;
+  pbr: number | null;
+  cns_per: number | null;
+  industry_name: string | null;
+  industry_per: number | null;
+  industry_pbr: number | null;
+  per_gap_pct: number | null;
+  pbr_gap_pct: number | null;
+  per_comment: string | null;
+  pbr_comment: string | null;
+  peers: { code: string; name: string; per: number | null; pbr: number | null }[];
+};
+
+export const fetchValuation = (code: string) => request<Valuation>(`/valuation/stock/${code}`);
+
 // 종목 로고 (NewStocks와 같은 출처). 없는 종목은 회색 원으로 보인다.
 export const stockLogoUrl = (code: string) =>
   `https://file.alphasquare.co.kr/media/images/stock_logo/kr/${code}.png`;

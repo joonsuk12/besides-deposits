@@ -14,6 +14,7 @@ from app.stock import service as stock_service
 from app.news.router import router as news_router
 from app.report.router import router as report_router
 from app.stock.router import router as stock_router
+from app.valuation.router import router as valuation_router
 
 
 @asynccontextmanager
@@ -39,3 +40,4 @@ app.add_middleware(
 app.include_router(stock_router)
 app.include_router(report_router)
 app.include_router(news_router)
+app.include_router(valuation_router)
