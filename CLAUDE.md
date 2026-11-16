@@ -18,6 +18,7 @@
 - 증권사 리포트 PDF 원문, SQLite DB 파일은 커밋하지 않는다.
 - 요약 문구에 매수·매도 권유를 넣지 않는다.
 - **프론트 CSS는 `frontend/src/app/globals.css`의 디자인 토큰(`--fs-*`, `--r-*`, 색 변수)만 쓴다.** 새 숫자·색이 필요하면 토큰을 먼저 늘린다.
+- 버튼·칩·카드·더보기는 `frontend/src/app/ui.css`의 공통 클래스(`ui-btn`, `ui-btn-ghost`, `ui-chip`, `ui-card`, `ui-more`)를 쓴다. 서비스 이름은 `frontend/src/lib/brand.ts`.
 - 결정이 바뀌거나 단계가 끝나면 `README.md`(진행 상황, 최종 갱신일)와 `docs/decisions.md`를 갱신한다.
 
 ## Git 작업 방식
