@@ -7,6 +7,9 @@
 // - markers: 뉴스(N, 캔들 아래), 리포트(R, 캔들 위), 중요 공시(D, 캔들 위). 주·월봉에서는 그 기간 안에 있으면 표시
 // - rangeDays: 3개월·1년 같은 기간 버튼. 그 기간이 보이게 맞추고 알맞은 봉으로 바꾼다
 // - 날짜를 누르면 onSelectDate로 그 날짜(주·월봉이면 그 기간의 마지막 거래일)를 알려준다
+// - 보조지표: 이동평균선(5·20·60·120), 볼린저밴드, RSI, MACD. 위쪽 "지표" 메뉴로 켜고 끈다(브라우저에 기억).
+//   지금 보고 있는 봉 기준으로 계산한다 (주봉에서 5선 = 5주선). 계산은 lib/indicators.ts
+// - 라이선스(Apache-2.0)상 TradingView 출처 링크가 필요해, 차트 안 로고 대신 차트 위에 링크를 둔다
 
 import { useEffect, useRef, useState } from "react";
 import {
@@ -14,6 +17,8 @@ import {
   ColorType,
   CrosshairMode,
   HistogramSeries,
+  LineSeries,
+  LineStyle,
   createChart,
   createSeriesMarkers,
   type IChartApi,
@@ -23,6 +28,7 @@ import {
   type Time,
 } from "lightweight-charts";
 import type { Price } from "@/lib/api";
+import { bollinger, macd, rsi, sma, type Series } from "@/lib/indicators";
 
 // 한국 증시 관례: 오르면 빨강, 내리면 파랑
 const UP = "#ff5a5a";
@@ -39,6 +45,29 @@ const INTERVALS: { key: Interval; label: string }[] = [
 ];
 const ORDER: Interval[] = ["day", "week", "month", "year"];
 const NAME: Record<Interval, string> = { day: "일봉", week: "주봉", month: "월봉", year: "연봉" };
+
+// 보조지표 설정. 초보 화면이 복잡하지 않게 기본은 이동평균선만 켠다
+type Indicators = { ma: number[]; bb: boolean; rsi: boolean; macd: boolean };
+const MA_PERIODS = [5, 20, 60, 120]; // 한국 증권사 앱 기본값 (1주·1달·3달·6달 거래일)
+const MA_COLORS: Record<number, string> = { 5: "#ffd84d", 20: "#ff7ad9", 60: "#4fe7b0", 120: "#b18cff" };
+const DEFAULT_IND: Indicators = { ma: MA_PERIODS, bb: false, rsi: false, macd: false };
+const IND_KEY = "stroll.indicators";
+const IND_HELP = {
+  ma: "최근 N개 봉 종가의 평균을 이은 선. 짧은 선이 긴 선을 뚫고 오르면 골든크로스, 내리면 데드크로스라고 불러요.",
+  bb: "20일 평균선 위아래로 평소 움직임 폭(표준편차 2배)만큼 띠를 그려요. 띠 밖으로 나가면 평소보다 많이 움직인 거예요.",
+  rsi: "최근 14개 봉 동안 오른 힘이 얼마나 센지 0~100으로. 70 이상은 과열, 30 이하는 침체로 봐요.",
+  macd: "짧은 평균(12)과 긴 평균(26)의 차이. 신호선(9)을 위로 뚫으면 오르는 힘이 세지는 신호로 봐요.",
+};
+
+function loadIndicators(): Indicators {
+  try {
+    const raw = localStorage.getItem(IND_KEY);
+    if (raw) return { ...DEFAULT_IND, ...JSON.parse(raw) };
+  } catch {
+    // 저장소를 못 쓰면 기본값
+  }
+  return DEFAULT_IND;
+}
 
 // 화면에 보이는 막대 수가 이 범위를 벗어나면 봉을 바꾼다. 위·아래 기준을 떨어뜨려 놔서 왔다 갔다 하지 않는다.
 const ZOOM_OUT_AT: Record<Interval, number> = { day: 260, week: 260, month: 150, year: Infinity }; // 10년(120개월)은 월봉으로 보인다
@@ -126,7 +155,17 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
   const barsRef = useRef<Bar[]>([]);
   const intervalRef = useRef<Interval>("day");
   const switchingRef = useRef(false);
+  // 봉 버튼으로 직접 고르면 그 봉을 유지한다 (자동 전환 끔). 기간 버튼(3개월 등)을 누르면 다시 자동
+  const manualRef = useRef(false);
   const [interval, setIntervalState] = useState<Interval>("day");
+  const [ind, setInd] = useState<Indicators>(DEFAULT_IND);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const indRef = useRef<Indicators>(DEFAULT_IND);
+  indRef.current = ind;
+  const indSeriesRef = useRef<ISeriesApi<"Line" | "Histogram">[]>([]);
+  // 지금 그려진 지표 값 (값 표시줄용)
+  const indDataRef = useRef<{ ma: Record<number, Series>; bb?: ReturnType<typeof bollinger>; rsi?: Series; macd?: ReturnType<typeof macd> }>({ ma: {} });
+  const legendRef = useRef<HTMLDivElement>(null);
 
   // 최신 콜백·표시를 차트를 다시 만들지 않고 쓰기 위한 보관함
   const onSelectRef = useRef(onSelectDate);
@@ -157,6 +196,7 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
     // 일봉에서는 막대를 너무 촘촘히 줄이지 못하게 해서, 더 줄이려 하면 주봉으로 넘어가게 한다
     chart.timeScale().applyOptions({ minBarSpacing: next === "day" ? 2 : 0.5 });
     drawMarkers();
+    drawIndicators();
 
     if (visible) {
       chart.timeScale().setVisibleRange({ from: visible.from as Time, to: visible.to as Time });
@@ -165,6 +205,112 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
     }
     // 위에서 바꾼 보이는 범위 때문에 또 봉이 바뀌지 않게 한 박자 쉰다
     setTimeout(() => (switchingRef.current = false), 80);
+  };
+
+  // 봉 버튼: 그 봉에 알맞은 기간을 보여주고 그 봉을 유지한다 (증권사 앱처럼 월봉을 누르면 긴 기간이 보인다)
+  const CHOSEN_RANGE_DAYS: Record<Interval, number | null> = { day: 183, week: 1095, month: null, year: null };
+  const chooseInterval = (next: Interval) => {
+    manualRef.current = true;
+    const days = CHOSEN_RANGE_DAYS[next];
+    if (days === null || prices.length === 0) return applyInterval(next);
+    const last = prices[prices.length - 1].date;
+    const from = shiftDate(last, -days);
+    applyInterval(next, { from: from < prices[0].date ? prices[0].date : from, to: last });
+  };
+
+  // 보조지표 다시 그리기: 이전 선·칸을 지우고 지금 봉·설정으로 새로 그린다
+  const drawIndicators = () => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    for (const sr of indSeriesRef.current) {
+      try {
+        chart.removeSeries(sr);
+      } catch {
+        // 이미 사라진 차트의 선이면 무시
+      }
+    }
+    indSeriesRef.current = [];
+    // 거래량(1번 칸) 아래에 붙였던 RSI·MACD 칸 지우기
+    for (let i = chart.panes().length - 1; i >= 2; i--) chart.removePane(i);
+
+    const bars = barsRef.current;
+    const closes = bars.map((b) => b.close);
+    const cfg = indRef.current;
+    const data: typeof indDataRef.current = { ma: {} };
+    const toLine = (vals: Series) => bars.map((b, i) => (vals[i] === null ? { time: b.time } : { time: b.time, value: vals[i] as number }));
+    const addLine = (vals: Series, color: string, pane: number, style: LineStyle = LineStyle.Solid, width: 1 | 2 = 1) => {
+      const sr = chart.addSeries(
+        LineSeries,
+        {
+          color,
+          lineWidth: width,
+          lineStyle: style,
+          priceLineVisible: false,
+          lastValueVisible: false,
+          crosshairMarkerVisible: false,
+          // 가격 칸의 선(이동평균·볼린저)은 세로축 범위를 넓히지 않게 (월봉 볼린저 아래선이 0 밑으로 내려가 축이 늘어났다)
+          ...(pane === 0 ? { autoscaleInfoProvider: () => null } : {}),
+        },
+        pane,
+      );
+      sr.setData(toLine(vals));
+      indSeriesRef.current.push(sr);
+      return sr;
+    };
+
+    for (const n of cfg.ma) {
+      data.ma[n] = sma(closes, n);
+      addLine(data.ma[n], MA_COLORS[n] ?? "#ccc", 0);
+    }
+    if (cfg.bb) {
+      data.bb = bollinger(closes);
+      addLine(data.bb.upper, "rgba(200,200,200,0.55)", 0, LineStyle.Dashed);
+      addLine(data.bb.lower, "rgba(200,200,200,0.55)", 0, LineStyle.Dashed);
+    }
+    let pane = 2;
+    if (cfg.rsi) {
+      data.rsi = rsi(closes);
+      const sr = addLine(data.rsi, "#ffc861", pane);
+      sr.createPriceLine({ price: 70, color: "rgba(255,90,90,0.6)", lineStyle: LineStyle.Dashed, lineWidth: 1, axisLabelVisible: true, title: "과열" });
+      sr.createPriceLine({ price: 30, color: "rgba(91,155,255,0.6)", lineStyle: LineStyle.Dashed, lineWidth: 1, axisLabelVisible: true, title: "침체" });
+      chart.panes()[pane]?.setHeight(90);
+      pane += 1;
+    }
+    if (cfg.macd) {
+      data.macd = macd(closes);
+      const hist = chart.addSeries(HistogramSeries, { priceLineVisible: false, lastValueVisible: false }, pane);
+      hist.setData(
+        bars.map((b, i) => {
+          const v = data.macd!.hist[i];
+          return v === null ? { time: b.time } : { time: b.time, value: v, color: v >= 0 ? "rgba(255,90,90,0.5)" : "rgba(91,155,255,0.5)" };
+        }),
+      );
+      indSeriesRef.current.push(hist);
+      addLine(data.macd.macd, "#4fe7b0", pane);
+      addLine(data.macd.signal, "#ff7ad9", pane);
+      chart.panes()[pane]?.setHeight(100);
+    }
+    chart.panes()[1]?.setHeight(70); // 칸을 더하고 빼면 높이가 다시 나뉘므로 거래량 칸 높이를 다시 정한다
+    indDataRef.current = data;
+    updateLegend(bars.length - 1);
+  };
+
+  // 차트 위 값 표시줄: 마우스를 올린 막대(없으면 마지막 막대)의 지표 값
+  const updateLegend = (i: number) => {
+    const el = legendRef.current;
+    if (!el) return;
+    const d = indDataRef.current;
+    const fmt = (v: number | null | undefined, digits = 0) =>
+      v === null || v === undefined ? "-" : v.toLocaleString("ko-KR", { maximumFractionDigits: digits });
+    const unit = { day: "일", week: "주", month: "개월", year: "년" }[intervalRef.current];
+    const parts: string[] = [];
+    for (const n of Object.keys(d.ma).map(Number)) {
+      parts.push(`<span style="color:${MA_COLORS[n]}">${n}${unit} ${fmt(d.ma[n][i])}</span>`);
+    }
+    if (d.bb) parts.push(`<span class="lg-sub">볼린저 ${fmt(d.bb.lower[i])} ~ ${fmt(d.bb.upper[i])}</span>`);
+    if (d.rsi) parts.push(`<span style="color:#ffc861">RSI ${fmt(d.rsi[i], 1)}</span>`);
+    if (d.macd) parts.push(`<span style="color:#4fe7b0">MACD ${fmt(d.macd.macd[i])}</span> <span style="color:#ff7ad9">신호 ${fmt(d.macd.signal[i])}</span>`);
+    el.innerHTML = parts.join(" · ");
   };
 
   const drawMarkers = () => {
@@ -194,6 +340,7 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
         background: { type: ColorType.Solid, color: "#00051E" },
         textColor: "#c9cdd8",
         fontFamily: "inherit",
+        attributionLogo: false, // 출처 링크는 차트 위에 따로 둔다 (라이선스 조건)
       },
       grid: {
         vertLines: { color: "rgba(197, 203, 206, 0.08)" },
@@ -214,6 +361,7 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
       },
     });
     chartRef.current = chart;
+    indSeriesRef.current = []; // 새 차트에는 아직 지표 선이 없다
 
     candlesRef.current = chart.addSeries(CandlestickSeries, {
       upColor: UP,
@@ -235,7 +383,7 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
 
     // 줌에 따라 봉 바꾸기
     chart.timeScale().subscribeVisibleLogicalRangeChange((range) => {
-      if (!range || switchingRef.current) return;
+      if (!range || switchingRef.current || manualRef.current) return;
       const count = range.to - range.from;
       const cur = intervalRef.current;
       const i = ORDER.indexOf(cur);
@@ -257,8 +405,10 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
       const bar = t ? barsRef.current.find((b) => b.time === t) : undefined;
       if (!param.point || !bar) {
         tooltip.style.display = "none";
+        updateLegend(barsRef.current.length - 1);
         return;
       }
+      updateLegend(barsRef.current.indexOf(bar));
       const m = marksRef.current;
       const has = (set?: Set<string>) => !!set && bar.days.some((d) => set.has(d));
       const tags = [has(m?.newsDates) ? "📰 뉴스" : "", has(m?.reportDates) ? "📄 리포트" : "", has(m?.disclosureDates) ? "📢 공시" : ""].filter(Boolean);
@@ -300,9 +450,34 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
     const last = prices[prices.length - 1].date;
     const from = shiftDate(last, -rangeDays);
     const first = prices[0].date;
+    manualRef.current = false;
     applyInterval(intervalForRange(rangeDays), { from: from < first ? first : from, to: last });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prices, rangeDays]);
+
+  // 지표 설정: 처음 한 번 브라우저 저장소에서 불러온다. 저장은 사용자가 바꿀 때만 한다
+  // (효과(useEffect)에서 저장하면 개발 모드가 효과를 두 번 돌리면서 기본값으로 덮어썼다)
+  useEffect(() => {
+    setInd(loadIndicators());
+  }, []);
+  useEffect(() => {
+    drawIndicators();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ind]);
+
+  const changeInd = (update: (v: Indicators) => Indicators) =>
+    setInd((v) => {
+      const next = update(v);
+      try {
+        localStorage.setItem(IND_KEY, JSON.stringify(next));
+      } catch {
+        // 저장 못 해도 화면은 그대로
+      }
+      return next;
+    });
+
+  const toggleMa = (n: number) =>
+    changeInd((v) => ({ ...v, ma: v.ma.includes(n) ? v.ma.filter((x) => x !== n) : [...v.ma, n].sort((a, b) => a - b) }));
 
   // 뉴스·리포트·공시 표시는 데이터가 따로 도착하므로 바뀔 때마다 다시 그린다
   useEffect(() => {
@@ -312,19 +487,73 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
 
   return (
     <div className="chart-wrap">
-      <div className="chart-interval" role="group" aria-label="봉 단위">
-        {INTERVALS.map((it) => (
-          <button
-            key={it.key}
-            className={interval === it.key ? "on" : ""}
-            onClick={() => applyInterval(it.key)}
-            title={NAME[it.key]}
-          >
-            {it.label}
+      <div className="chart-toolbar">
+        <div className="chart-interval" role="group" aria-label="봉 단위">
+          {INTERVALS.map((it) => (
+            <button
+              key={it.key}
+              className={interval === it.key ? "on" : ""}
+              onClick={() => chooseInterval(it.key)}
+              title={NAME[it.key]}
+            >
+              {it.label}
+            </button>
+          ))}
+        </div>
+        <div className="chart-ind">
+          <button className={`chart-ind-btn ${menuOpen ? "on" : ""}`} onClick={() => setMenuOpen((v) => !v)} aria-expanded={menuOpen}>
+            지표 ▾
           </button>
-        ))}
+          {menuOpen && (
+            <div className="chart-ind-menu">
+              <div className="ind-row">
+                <b>이동평균선</b>
+                <div className="ind-chips">
+                  {MA_PERIODS.map((n) => (
+                    <button
+                      key={n}
+                      className={ind.ma.includes(n) ? "on" : ""}
+                      style={{ borderColor: MA_COLORS[n], color: ind.ma.includes(n) ? "#00051e" : MA_COLORS[n], background: ind.ma.includes(n) ? MA_COLORS[n] : "none" }}
+                      onClick={() => toggleMa(n)}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+                <p>{IND_HELP.ma}</p>
+              </div>
+              {(
+                [
+                  ["bb", "볼린저밴드"],
+                  ["rsi", "RSI (과열·침체)"],
+                  ["macd", "MACD (추세 전환)"],
+                ] as const
+              ).map(([key, label]) => (
+                <label key={key} className="ind-row">
+                  <span>
+                    <input type="checkbox" checked={ind[key]} onChange={() => changeInd((v) => ({ ...v, [key]: !v[key] }))} />{" "}
+                    <b>{label}</b>
+                  </span>
+                  <p>{IND_HELP[key]}</p>
+                </label>
+              ))}
+              <button className="ind-reset" onClick={() => changeInd(() => DEFAULT_IND)}>
+                기본값으로
+              </button>
+            </div>
+          )}
+        </div>
+        <a className="chart-credit" href="https://www.tradingview.com/" target="_blank" rel="noreferrer">
+          차트: TradingView Lightweight Charts
+        </a>
       </div>
-      <div ref={containerRef} className="chart" />
+      <div ref={legendRef} className="chart-legend" />
+      {/* RSI·MACD 칸을 켜면 그만큼 차트를 키워서 캔들 칸이 눌리지 않게 */}
+      <div
+        ref={containerRef}
+        className="chart"
+        style={{ "--chart-extra": `${(ind.rsi ? 90 : 0) + (ind.macd ? 100 : 0)}px` } as React.CSSProperties}
+      />
       <div ref={tooltipRef} className="chart-tooltip" />
     </div>
   );
