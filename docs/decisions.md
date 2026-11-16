@@ -197,3 +197,20 @@
 - 적자인 해는 PER을 계산하지 않고 막대 대신 "적자"라고 쓴다. 예상치는 흐린 점선 막대로 구분한다.
 - 연도별 PER·PBR은 그해 말 주가 기준이라 "주가 수준" 탭(최근 1년 실적 ÷ 최근 종가)과 숫자가 다르다. 화면에 안내를 달았다.
 - API: `GET /valuation/stock/{code}/overview`. 관심종목 화면은 그대로(간단 버전).
+
+## 지금 상태와 남은 일 (2026-11-16 기준, 대화를 이어갈 때 여기부터)
+
+### 상태
+- main에 모두 합침. 작업 브랜치 없음. 새 작업은 main에서 새 브랜치로 (CLAUDE.md).
+- 자동 실행: 평일 18시 `StockNewbieStroll-DailyCollect`(윈도우 작업 스케줄러, `daily_collect.cmd`), 평일 19시 쉬운 말 요약(Claude Code 예약 작업 `stroll-easy-report-summary`).
+
+### 운영 메모
+- 서버 켜기: 백엔드 `backend`에서 `.venv\Scripts\uvicorn app.main:app --reload --port 8100`, 프론트 `frontend`에서 `npm.cmd run dev` (PowerShell 실행 정책 때문에 `npm`이 막힘). 또는 레포의 `dev.cmd`.
+- OpenDART 키는 `backend/.env`의 `DART_API_KEY`. 키를 바꾸면 백엔드를 다시 켠다.
+- 네이버 내부 API가 바뀌면 `core/naver.py`와 각 도메인 `client.py`를 고치고, `scripts/probe_naver_research.py`로 응답 모양부터 확인한다.
+
+### 남은 일 / 아이디어
+- 쉬운 말 요약을 뉴스에도 쓸지 정하기.
+- 연간 흐름을 3~4년보다 길게 보려면 OpenDART 재무제표로 직접 계산.
+- 관심종목 화면에도 필터·탭을 넣을지 (지금은 간단 버전).
+- 회사 소개 문장이 네이버 원문 말투("~하고 있음")라 쉬운 말 요약처럼 다듬을지.
