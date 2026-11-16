@@ -34,3 +34,25 @@ class ValuationResponse(BaseModel):
     focus_also: list[str] = []  # PER·PBR과 함께 볼 것
     focus_caution: str | None = None  # 이 업종에서 흔한 착각
     peers: list[PeerValuation] = []
+
+
+class YearValuation(BaseModel):
+    label: str  # "2025.12"
+    is_estimate: bool  # 증권사 예상치인지
+    per: float | None  # 적자인 해는 None
+    pbr: float | None
+    eps: float | None
+    bps: float | None
+    revenue: float | None  # 매출액 (억원)
+    operating_profit: float | None  # 영업이익 (억원)
+    roe: float | None  # %
+    dividend: float | None  # 주당배당금 (원)
+
+
+class OverviewResponse(BaseModel):
+    available: bool
+    message: str | None = None
+    summary: list[str] = []  # 회사 소개 문장들
+    industry_name: str | None = None
+    years: list[YearValuation] = []
+    trend_comment: str | None = None  # 연도별 흐름을 한두 문장으로

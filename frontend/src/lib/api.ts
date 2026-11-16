@@ -112,7 +112,30 @@ export type Valuation = {
   peers: { code: string; name: string; per: number | null; pbr: number | null }[];
 };
 
-export const fetchValuation = (code: string) => request<Valuation>(`/valuation/stock/${code}`);
+export type YearValuation = {
+  label: string; // "2025.12"
+  is_estimate: boolean; // 증권사 예상치인지
+  per: number | null; // 적자인 해는 null
+  pbr: number | null;
+  eps: number | null;
+  bps: number | null;
+  revenue: number | null; // 억원
+  operating_profit: number | null; // 억원
+  roe: number | null;
+  dividend: number | null;
+};
+
+export type Overview = {
+  available: boolean;
+  message: string | null;
+  summary: string[];
+  industry_name: string | null;
+  years: YearValuation[];
+  trend_comment: string | null;
+};
+
+export const fetchOverview = (code: string) => request<Overview>(`/valuation/stock/${code}/overview`);
+export const fetchValuation =(code: string) => request<Valuation>(`/valuation/stock/${code}`);
 
 // 종목 로고 (NewStocks와 같은 출처). 없는 종목은 회색 원으로 보인다.
 export const stockLogoUrl = (code: string) =>

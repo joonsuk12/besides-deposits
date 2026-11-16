@@ -5,6 +5,7 @@
 """
 from datetime import datetime
 
+from sqlalchemy import Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -24,4 +25,15 @@ class Fundamental(Base):
     industry_code: Mapped[str | None]
     industry_name: Mapped[str | None]
     peer_codes: Mapped[str] = mapped_column(default="")  # 네이버가 고른 같은 업종 비교 회사들 (쉼표 구분)
+    fetched_at: Mapped[datetime]
+
+
+class CompanyOverview(Base):
+    """회사 소개 글과 연도별 실적·지표. 네이버에서 받은 것을 그대로 보관한다 (반나절에 한 번 갱신)."""
+
+    __tablename__ = "company_overview"
+
+    stock_code: Mapped[str] = mapped_column(primary_key=True)
+    summary: Mapped[str] = mapped_column(Text, default="")  # 회사 소개 문장들 (줄바꿈 구분)
+    annual_json: Mapped[str] = mapped_column(Text, default="[]")  # 연도별 숫자 (JSON 문자열)
     fetched_at: Mapped[datetime]

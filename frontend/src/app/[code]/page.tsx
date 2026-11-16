@@ -4,7 +4,7 @@
 //   왼쪽: 관심 종목 목록
 //   가운데: 차트(뉴스 N·리포트 R·공시 D 표시) → 선택한 날(가격 한 줄 + 그날 뉴스 | 공시·리포트) → 이번 주 많이 다뤄진 뉴스 3개
 //   (뉴스·공시·리포트는 3개씩만 먼저 보여주고 나머지는 "더 보기" — 초보가 정보에 묻히지 않게)
-//   오른쪽: 이 종목 요약 — 주가 수준(PER·PBR) → 최근 공시 → 최근 증권사 리포트 → 캔들 읽는 법
+//   오른쪽: 이 종목 요약 — [주가 수준 | 연간 흐름 | 회사 소개] 탭 → 최근 공시 → 최근 증권사 리포트 → 캔들 읽는 법
 
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { FaRegStar, FaStar } from "react-icons/fa";
@@ -16,7 +16,7 @@ import ShowMore from "@/components/ShowMore/ShowMore";
 import ToneFilter, { type Tone } from "@/components/ToneFilter/ToneFilter";
 import StockChart, { type DayMarks } from "@/components/StockChart";
 import StockProfile from "@/components/StockProfile/StockProfile";
-import ValuationCard from "@/components/ValuationCard/ValuationCard";
+import StockInfoCard from "@/components/StockInfoCard/StockInfoCard";
 import WatchlistSidebar from "@/components/WatchlistSidebar/WatchlistSidebar";
 import {
   addWatch,
@@ -301,8 +301,7 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
       {/* 오른쪽: 날짜와 상관없는 이 종목 요약 */}
       <aside className={styles["side-container"]}>
         <section className={styles["card"]}>
-          <h2>💰 주가 수준 (PER·PBR)</h2>
-          <ValuationCard code={code} />
+          <StockInfoCard code={code} />
         </section>
 
         <section className={styles["card"]}>
