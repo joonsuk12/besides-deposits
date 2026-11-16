@@ -19,15 +19,15 @@
 
 .badge {
   padding: 1px 9px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 600;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .warn {
-  color: #ffc861;
-  border-color: #ffc861;
+  color: var(--warn);
+  border-color: var(--warn);
 }
 
 .good {
@@ -36,8 +36,8 @@
 }
 
 .key {
-  color: #9ec5ff;
-  border-color: #9ec5ff;
+  color: var(--key);
+  border-color: var(--key);
 }
 
 .info {
@@ -46,7 +46,7 @@
 
 .sub,
 .date {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--sub);
 }
 
@@ -56,7 +56,7 @@
 
 .title {
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--fs-base);
   line-height: 1.5;
 }
 
@@ -64,9 +64,9 @@
 .explain,
 .empty {
   margin: 4px 0 0;
-  font-size: 13px;
+  font-size: var(--fs-md);
   line-height: 1.55;
-  color: #d6d8e0;
+  color: var(--text-2);
 }
 
 .empty {
@@ -76,24 +76,24 @@
 /* 좋은 소식 / 나쁜 소식 꼬리표. 뉴스와 같은 색 규칙: 좋은 쪽 빨강, 나쁜 쪽 파랑 (한국 증시 관례) */
 .tone {
   padding: 1px 9px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 700;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
 }
 
 .tone-good {
-  color: #00051e;
-  background: #ff5a5a;
+  color: var(--bg);
+  background: var(--up);
 }
 
 .tone-bad {
-  color: #00051e;
-  background: #5b9bff;
+  color: var(--bg);
+  background: var(--down);
 }
 
 .tone-key {
-  color: #ffc861;
-  border: 1px solid #ffc861;
+  color: var(--warn);
+  border: 1px solid var(--warn);
 }
 
 /* 왼쪽 색 띠로 한눈에 구분 */
@@ -103,15 +103,15 @@
 }
 
 .item-good {
-  border-left-color: #ff5a5a;
+  border-left-color: var(--up);
 }
 
 .item-warn {
-  border-left-color: #5b9bff;
+  border-left-color: var(--down);
 }
 
 .item-key {
-  border-left-color: #ffc861;
+  border-left-color: var(--warn);
 }
 
 .title {
@@ -122,14 +122,14 @@
   margin-top: 8px;
   padding: 8px 12px;
   background: rgba(176, 176, 176, 0.08);
-  border-radius: 8px;
-  font-size: 13px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-md);
   line-height: 1.55;
 }
 
 .detail h4 {
   margin: 6px 0 2px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--sub);
 }
 
@@ -147,7 +147,7 @@
   justify-content: flex-end;
   gap: 10px;
   margin-top: 6px;
-  font-size: 13px;
+  font-size: var(--fs-md);
 }
 
 .actions button,
@@ -166,7 +166,7 @@
 
 .legend {
   margin-top: 8px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--sub);
 }
 
@@ -181,5 +181,5 @@
 }
 
 .legend b {
-  color: #d6d8e0;
+  color: var(--text-2);
 }

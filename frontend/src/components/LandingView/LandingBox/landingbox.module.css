@@ -4,7 +4,7 @@
 }
 .Button-width:hover {
   /* border-radius: 65.153px;
-  border: 2px solid #1DE9B6; */
+  border: 2px solid var(--mint); */
 }
 
 .title {
@@ -14,11 +14,11 @@
 }
 
 .title span {
-  color: #1DE9B6;
+  color: var(--mint);
 }
 
 .description {
-  font-size: 15px;
+  font-size: var(--fs-lg);
   font-style: normal;
   font-weight: bold;
 
@@ -139,7 +139,7 @@
   justify-content: center;
   align-items: center;
 
-  font-size: 15px;
+  font-size: var(--fs-lg);
   font-weight: 500;
 
   background-color: transparent;
@@ -166,8 +166,8 @@
   padding: 18px;
   display: grid;
   gap: 10px;
-  border: 1px solid #5a5a5ada;
-  border-radius: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
   background: rgba(176, 176, 176, 0.07);
 }
 
@@ -176,14 +176,14 @@
   grid-template-columns: 1fr auto;
   gap: 4px 12px;
   padding: 12px 14px;
-  border-radius: 8px;
+  border-radius: var(--r-md);
   background: rgba(176, 176, 176, 0.08);
   font-weight: 600;
 }
 
 .watch-mock-tags {
   grid-column: 1 / -1;
-  font-size: 13px;
+  font-size: var(--fs-md);
   font-weight: 400;
   color: rgba(255, 255, 255, 0.6);
 }

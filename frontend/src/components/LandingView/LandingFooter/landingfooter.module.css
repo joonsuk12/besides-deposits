@@ -40,17 +40,17 @@
 }
 
 .footer-title {
-  font-size: 21px;
+  font-size: var(--fs-xl);
   font-weight: 700;
   margin-bottom: 33px;
 }
 
 .footer-title span {
-  color: #4FE7B0;
+  color: var(--mint);
 }
 
 .footer-content {
-  font-size: 17px;
+  font-size: var(--fs-lg);
   margin-bottom: 15px;
 }
 

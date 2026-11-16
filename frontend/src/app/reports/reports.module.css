@@ -14,7 +14,7 @@
 
 .head h1 {
   margin: 0;
-  font-size: 24px;
+  font-size: var(--fs-2xl);
   color: var(--mint);
 }
 
@@ -22,7 +22,7 @@
 .notice,
 .count {
   color: var(--sub);
-  font-size: 14px;
+  font-size: var(--fs-base);
 }
 
 .day-nav {
@@ -64,24 +64,27 @@
 
 .chip {
   padding: 4px 12px;
-  font-size: 13px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  font-size: var(--fs-md);
+  color: var(--text-2);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line-strong);
   background: transparent;
   cursor: pointer;
 }
 
 .chip:hover {
-  border-color: var(--mint);
+  border-color: rgba(255, 255, 255, 0.45);
 }
 
 .active {
-  color: var(--mint);
-  border: 2px solid var(--mint);
+  color: var(--bg);
+  background: var(--mint);
+  border-color: var(--mint);
+  font-weight: 700;
 }
 
 .count {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   margin-left: 2px;
 }
 
@@ -89,12 +92,12 @@
   width: 220px;
   max-width: 100%;
   padding: 6px 14px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   border: 0;
   background: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-md);
 }
 
 .search:focus {
@@ -105,5 +108,5 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 12px;
-  align-items: start;
+  align-items: stretch;
 }

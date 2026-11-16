@@ -1,14 +1,42 @@
-/* NewStocks의 어두운 남색 바탕 + 민트 강조색을 그대로 쓴다. */
+/* 디자인 규칙(토큰)은 모두 여기에 모은다. 화면별 CSS는 숫자·색을 직접 쓰지 말고 이 변수를 쓴다.
+   바탕은 NewStocks의 어두운 남색, 강조는 민트. 한국 증시 관례대로 오르면 빨강, 내리면 파랑. */
 :root {
-  --bg: #00051e;
-  --line: #5a5a5ada;
-  --mint: #4fe7b0;
-  --sub: #8c8c8c;
+  /* ── 색 ── */
+  --bg: #00051e; /* 페이지 바탕 */
+  --surface: #0b1030; /* 카드 바탕 */
+  --surface-2: rgba(176, 176, 176, 0.08); /* 카드 안의 옅은 칸 */
+  --line: rgba(255, 255, 255, 0.12); /* 카드 테두리·구분선 */
+  --line-strong: rgba(255, 255, 255, 0.24);
+  --text: #f2f4f8; /* 본문 */
+  --text-2: #c9cdd8; /* 설명 글 */
+  --sub: #9aa1b2; /* 날짜·출처 같은 보조 글 (이전 #8c8c8c는 어두운 바탕에서 너무 흐렸다) */
+  --mint: #4fe7b0; /* 강조 */
+  --mint-soft: rgba(79, 231, 176, 0.08);
+  --up: #ff5a5a; /* 상승·좋은 소식 */
+  --down: #5b9bff; /* 하락·나쁜 소식 */
+  --warn: #ffc861; /* 주의·내용 확인 */
+  --key: #9ec5ff;
   --hover: #646a89;
   --panel: #3b3f52;
-  /* 한국 증시 관례: 오르면 빨강, 내리면 파랑 */
-  --up: #ff5a5a;
-  --down: #5b9bff;
+
+  /* ── 글자 크기: 이 7단계만 쓴다 ── */
+  --fs-xs: 11px; /* 꼬리표 */
+  --fs-sm: 12px; /* 날짜·출처·캡션 */
+  --fs-md: 13px; /* 설명 글 */
+  --fs-base: 14px; /* 본문·목록 제목 */
+  --fs-lg: 16px; /* 카드 제목 */
+  --fs-xl: 20px; /* 화면 소제목 */
+  --fs-2xl: 24px; /* 화면 제목·주가 */
+  --lh: 1.6;
+
+  /* ── 모서리 ── */
+  --r-sm: 6px; /* 작은 칸 */
+  --r-md: 10px; /* 카드 */
+  --r-pill: 999px; /* 꼬리표·칩 */
+
+  /* ── 레이아웃 ── */
+  --page-max: 1600px; /* 아주 넓은 모니터에서도 이 폭을 넘지 않게 */
+  --header-h: 48px;
 }
 
 * {
@@ -24,8 +52,26 @@ html {
   max-width: 100vw;
   margin: 0;
   background-color: var(--bg);
-  color: #fff;
-  font-family: "Open Sans", "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+  color: var(--text);
+  font-family:
+    var(--font-pretendard), "Pretendard Variable", Pretendard, "Malgun Gothic", "Apple SD Gothic Neo", system-ui,
+    sans-serif;
+  font-size: var(--fs-base);
+  line-height: var(--lh);
+  /* 한글 단어가 줄 끝에서 쪼개지지 않게 */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+/* 숫자(주가·거래량·표)는 폭이 일정한 숫자로 */
+.num,
+table {
+  font-variant-numeric: tabular-nums;
 }
 
 a {
@@ -33,7 +79,8 @@ a {
   text-decoration: none;
 }
 
-button {
+button,
+input {
   font: inherit;
   color: inherit;
 }

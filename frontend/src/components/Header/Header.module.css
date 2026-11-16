@@ -1,128 +1,96 @@
+/* 상단 바: 왼쪽 로고 / 가운데 검색(남는 폭을 차지) / 오른쪽 메뉴 */
 .header {
-  font-family: 'Nunito Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  border-bottom: 1px solid #4FE7B0;
-  padding: 15px 30px 15px 12px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  
-  height: 48px;
-  color: #fff;
-
-  /* border: 1px dotted red; */
+  gap: 16px;
+  height: var(--header-h);
+  padding: 0 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--mint);
 }
 
-.home-link {
-  cursor: pointer;
-}
-
-.header svg {
-  display: inline-block;
-  vertical-align: top;
-}
-
-.header h1 {
-  font-weight: 700;
-  font-size: 20px;
-  line-height: 1;
-  margin: 6px 0 6px 10px;
-  display: inline-block;
-  vertical-align: top;
-  
-  color: #4FE7B0;
-}
-
-.header button + button {
-  margin-left: 10px;
-}
-
-.header-left {
-  width: 220px;
-  /* border: 1px dotted white; */
-}
-
-.search-box-container {
-  width: 450px; 
-}
-
-.header-right {
-  width: 220px;
+.brand {
   display: flex;
-  justify-content: space-between;
-}
-
-.header-link{
-  width: 60px;
-  margin: 0 0 3px 0;
-  color: #FFF;
-  /* text-align: center; */
-  cursor: pointer;
-
-  display: flex;
-  justify-content: center;
   align-items: center;
-  /* border: 1px dotted white; */
+  gap: 8px;
+  flex-shrink: 0;
 }
-.header-link:hover {
-  color:#4FE7B0
-}
-.header-logo {
+
+.logo {
+  width: 28px;
   height: auto;
-  width: 30px;
-  display: inline-block;
 }
 
-.tooltip-container {
-  position: relative;
+.name {
+  font-size: var(--fs-xl);
+  font-weight: 800;
+  color: var(--mint);
+  white-space: nowrap; /* 좁은 화면에서 "주식/초보/나들/이"로 꺾이던 문제 */
 }
 
-.header-link {
-  position: relative;
+.search {
+  flex: 1;
+  min-width: 0;
+  max-width: 480px;
+  margin: 0 auto;
 }
 
-.tooltip-community {
-  display: none;
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #343333;
-  color: #ffffff;
-  padding: 5px;
-  border-radius: 5px;
-  z-index: 1;
-  width: 55px;
-  height: 25px;
-  font-size: 11px;
-}
-.tooltip-chart {
-  display: none;
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #343333;
-  color: #ffffff;
-  padding: 5px;
-  border-radius: 5px;
-  z-index: 1;
-  width: 32px;
-  height: 25px;
-  font-size: 11px;
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
-
-.header-link:hover .tooltip-community {
-  display: block;
-}
-.header-link:hover .tooltip-chart {
-  display: block;
-}
-
-/* 메뉴 이름이 길어져 툴팁 폭을 글자에 맞춘다 */
-.tooltip-community,
-.tooltip-chart {
-  width: auto;
-  height: auto;
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 10px;
+  font-size: var(--fs-md);
+  color: var(--text-2);
+  background: none;
+  border: 0;
+  border-radius: var(--r-sm);
+  cursor: pointer;
   white-space: nowrap;
+}
+
+.nav-item:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.active {
+  color: var(--mint);
+  font-weight: 700;
+}
+
+/* 중간 화면: 메뉴 글자를 숨기고 아이콘만 */
+@media (max-width: 960px) {
+  .nav-item span {
+    display: none;
+  }
+}
+
+/* 휴대폰: 로고 글자도 숨기고 로고 그림만, 여백도 줄인다 */
+@media (max-width: 560px) {
+  .header {
+    gap: 8px;
+    padding: 0 10px;
+  }
+
+  .name {
+    display: none;
+  }
+
+  .nav-item {
+    width: 40px;
+    padding: 0;
+    justify-content: center;
+  }
 }

@@ -11,7 +11,7 @@
 
   margin: 0 auto;
   background-color:#d9d9d96f;
-  border-radius: 2px;
+  border-radius: var(--r-sm);
 }
 
 /* title 영역 */
@@ -37,7 +37,7 @@
 }
 
 .stock-name {
-  font-size: 15px;
+  font-size: var(--fs-lg);
   margin: 3px 0 0 0;
 }
 
@@ -48,7 +48,7 @@
 
 .title {
   font-weight: 500;
-  font-size: 15px;
+  font-size: var(--fs-lg);
   margin-top: 7px;
 }
 
@@ -59,7 +59,7 @@
 }
 
 .content {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   line-height: 18px;
   color: rgba(255, 255, 255, 0.818);
 }
@@ -75,7 +75,7 @@
 }
 
 .time {
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: rgba(255, 255, 255, 0.818);
   padding: 5px 0 0 0;
 }
@@ -88,20 +88,20 @@
 
 .icons-container {
   display: flex;
-  font-size: 15px;
+  font-size: var(--fs-lg);
   margin-left: auto;
 }
 
 .icons-container div{
   display: flex;
-  font-size: 15px;
+  font-size: var(--fs-lg);
 }
 
 .icons-container p {
   margin: 0;
   margin-right: 4px;
   margin-left: 2px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 
 .tag-container {
@@ -111,7 +111,7 @@
 
 .tag-container div {
   border-radius: 50px;
-  font-size: 10px;
+  font-size: var(--fs-xs);
   height: 17px;
   padding: 0 8px;
   padding-top: 1px;

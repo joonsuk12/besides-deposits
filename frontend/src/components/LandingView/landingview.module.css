@@ -3,7 +3,7 @@
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%); 
-    font-size: 24px;
+    font-size: var(--fs-2xl);
     cursor: default;
     animation: bounce 2s infinite;
     opacity: 1;

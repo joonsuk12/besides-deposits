@@ -7,11 +7,11 @@
 
 .chips button {
   padding: 3px 10px;
-  font-size: 12px;
-  color: var(--sub);
+  font-size: var(--fs-sm);
+  color: var(--text-2);
   background: none;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
   cursor: pointer;
 }
 
@@ -21,19 +21,19 @@
 
 /* 한국 증시 관례: 좋은 쪽 빨강, 나쁜 쪽 파랑 */
 .good {
-  color: #ff5a5a !important;
+  color: var(--up) !important;
 }
 
 .bad {
-  color: #5b9bff !important;
+  color: var(--down) !important;
 }
 
 .check {
-  color: #ffc861 !important;
+  color: var(--warn) !important;
 }
 
 .chips button.on {
-  color: #00051e !important;
+  color: var(--bg) !important;
   background: var(--mint);
   border-color: var(--mint);
   font-weight: 700;

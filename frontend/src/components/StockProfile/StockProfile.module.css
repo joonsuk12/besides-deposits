@@ -6,7 +6,7 @@
 
 .stock-img-box {
 
-  background-color: #8C8C8C;
+  background-color: var(--sub);
   border-radius: 100%;
   overflow: hidden; 
 }
@@ -37,19 +37,31 @@
 }
 
 .stock-name-small {
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 
 .stock-name-mid {
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .stock-info-small {
-  font-size: 8px; 
-  color: #8C8C8C;
+  font-size: var(--fs-xs); 
+  color: var(--sub);
 }
 
 .stock-info-mid {
-  font-size: 12px;
-  color: #8C8C8C; 
+  font-size: var(--fs-sm);
+  color: var(--sub); 
+}
+
+/* 긴 종목명(한화에어로스페이스 등)은 두 줄로 꺾지 않고 … 으로 줄인다 */
+.stock-profile-wrapper,
+.stock-info-wrapper {
+  min-width: 0;
+}
+
+.stock-name-small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
