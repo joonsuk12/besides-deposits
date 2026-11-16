@@ -39,6 +39,7 @@ def create_tables() -> None:
     # Entity를 Base에 등록하기 위한 import. 도메인이 늘면 여기에 추가한다.
     from app.core import fetch_log  # noqa: F401
     from app.disclosure import models as disclosure_models  # noqa: F401
+    from app.etf import models as etf_models  # noqa: F401
     from app.news import models as news_models  # noqa: F401
     from app.report import models as report_models  # noqa: F401
     from app.stock import models as stock_models  # noqa: F401

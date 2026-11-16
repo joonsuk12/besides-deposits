@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import DisclosureList from "@/components/DisclosureList/DisclosureList";
 import NewsList from "@/components/NewsList/NewsList";
 import ReportCard from "@/components/ReportCard/ReportCard";
+import EtfCard from "@/components/EtfCard/EtfCard";
 import ValuationCard from "@/components/ValuationCard/ValuationCard";
 import StockProfile from "@/components/StockProfile/StockProfile";
 import {
@@ -147,6 +148,7 @@ export default function WatchlistPage() {
                   {ex && (
                     <>
                       {!isEtf && <span>최근 리포트 {ex.reports.length}</span>}
+                      {isEtf && <EtfCard code={s.code} compact />}
                       <span>이번 주 뉴스 {ex.news.length}</span>
                       {!isEtf && <span className={styles["good"]}>좋은 공시 {goodD}</span>}
                       {!isEtf && <span className={styles["bad"]}>나쁜 공시 {badD}</span>}
@@ -161,7 +163,8 @@ export default function WatchlistPage() {
                   {/* ETF는 회사가 아니라 리포트·공시·PER이 없다. 빈 칸 세 개 대신 한 줄로 알려 준다 */}
                   {isEtf && (
                     <p className={styles["placeholder"]}>
-                      ETF는 회사가 아니라서 증권사 리포트·공시·PER이 없어요. 뉴스만 모아 봐요.
+                      <EtfCard code={s.code} compact /> — ETF는 회사가 아니라서 리포트·공시·PER 대신 차트 화면에서 ETF
+                      정보(담긴 종목·보수 등)를 봐요.
                     </p>
                   )}
                   {!isEtf && ex && ex.reports.length === 0 && (
