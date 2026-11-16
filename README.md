@@ -1,6 +1,7 @@
 # 비사이드디포짓 (BESIDES DEPOSITS)
 
-> 레포 이름은 `stock-newbie-stroll` (예전 서비스 이름 "주식초보나들이", 2026-11-16 이름 변경)
+> GitHub 레포 `joonsuk12/besides-deposits` (2026-11-16 `stock-newbie-stroll`에서 이름 변경, 예전 주소는 자동으로 연결됨).
+> 이 PC의 작업 폴더 이름은 그대로 `stock-newbie-stroll` (작업 스케줄러·예약 작업이 이 경로를 쓴다). 예전 서비스 이름은 "주식초보나들이".
 
 주식 초보가 **차트 · 뉴스 · 증권사 리포트 · 공시**를 한 화면에서 쉽게 훑어볼 수 있게 해 주는 개인용 웹서비스.
 
@@ -67,7 +68,7 @@
 ## 4. 구성
 
 ```
-stock-newbie-stroll/
+stock-newbie-stroll/   (로컬 폴더 이름. GitHub 레포는 besides-deposits)
   backend/     FastAPI + SQLAlchemy + SQLite (JSON API만 담당, 포트 8100)
   frontend/    Next.js + TypeScript + TradingView Lightweight Charts (화면, 포트 3000)
   docs/        결정 기록, Spring↔FastAPI 대응표
