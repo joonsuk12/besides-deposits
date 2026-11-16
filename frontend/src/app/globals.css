@@ -60,7 +60,7 @@ html {
   line-height: var(--lh);
   /* 한글 단어가 줄 끝에서 쪼개지지 않게 */
   word-break: keep-all;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word; /* 칸을 넘칠 때만 줄을 바꾼다 (anywhere는 "02" 같은 숫자까지 쪼갰다) */
   -webkit-font-smoothing: antialiased;
 }
 

@@ -1,5 +1,5 @@
 "use client";
-// 상단 바: 로고, 종목 검색, 메뉴(차트 / 오늘의 리포트 / 내 관심종목). NewStocks의 Header를 옮긴 것.
+// 상단 바: 로고(→ 홈), 종목 검색, 메뉴(차트 / 오늘의 리포트 / 관심종목 / 도움말). NewStocks의 Header를 옮긴 것.
 // 메뉴는 아이콘만 있으면 뜻을 알기 어려워 글자를 붙였다. 좁은 화면에서는 글자를 숨기고 아이콘만 남긴다.
 // 지금 있는 화면의 메뉴는 민트색으로 표시한다.
 
@@ -8,7 +8,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { BiBarChartAlt2 } from "react-icons/bi";
 import { FaRegStar } from "react-icons/fa";
-import { HiOutlineDocumentText } from "react-icons/hi";
+import { HiOutlineDocumentText, HiOutlineQuestionMarkCircle } from "react-icons/hi";
 
 import Logoimg from "@/assets/logo.png";
 import { goToStart, type Stock } from "@/lib/api";
@@ -47,6 +47,10 @@ export default function Header() {
         <Link className={on(pathname === "/watchlist")} href="/watchlist" aria-label="내 관심종목">
           <FaRegStar size={18} aria-hidden />
           <span>관심종목</span>
+        </Link>
+        <Link className={on(pathname === "/guide")} href="/guide" aria-label="도움말">
+          <HiOutlineQuestionMarkCircle size={20} aria-hidden />
+          <span>도움말</span>
         </Link>
       </nav>
     </header>

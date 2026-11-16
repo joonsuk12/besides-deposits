@@ -1,0 +1,119 @@
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 32px;
+}
+
+.page h1 {
+  margin: 0;
+  font-size: var(--fs-2xl);
+  color: var(--mint);
+}
+
+.lead {
+  margin: 6px 0 20px;
+  color: var(--text-2);
+}
+
+/* 왼쪽 목차(스크롤해도 따라옴) + 오른쪽 본문 */
+.layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.toc {
+  position: sticky;
+  top: calc(var(--header-h) + 16px);
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.toc p {
+  margin: 0 0 6px;
+  font-size: var(--fs-sm);
+  color: var(--sub);
+}
+
+.toc ol {
+  margin: 0;
+  padding-left: 18px;
+  font-size: var(--fs-md);
+  line-height: 2;
+}
+
+.toc a:hover {
+  color: var(--mint);
+}
+
+.body section {
+  padding: 4px 0 20px;
+  border-bottom: 1px solid var(--line);
+  /* 목차를 눌렀을 때 고정 헤더에 제목이 가리지 않게 */
+  scroll-margin-top: calc(var(--header-h) + 12px);
+}
+
+.body section + section {
+  margin-top: 20px;
+}
+
+.body h2 {
+  margin: 0 0 10px;
+  font-size: var(--fs-xl);
+}
+
+.body ul {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.8;
+  color: var(--text-2);
+}
+
+.body li + li {
+  margin-top: 4px;
+}
+
+.body b {
+  color: var(--text);
+}
+
+.body p {
+  margin: 0 0 8px;
+  color: var(--text-2);
+}
+
+.sub {
+  font-size: var(--fs-md);
+  color: var(--sub) !important;
+}
+
+.sub a {
+  color: var(--mint);
+  text-decoration: underline;
+}
+
+.n {
+  color: #b4ff4a !important;
+}
+
+.r {
+  color: #ff7ad9 !important;
+}
+
+.d {
+  color: var(--warn) !important;
+}
+
+@media (max-width: 760px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .toc {
+    position: static;
+  }
+}
