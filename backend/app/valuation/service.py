@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.core import fetch_log
 from app.stock import repository as stock_repository
 from app.valuation import client, focus, repository
+from app.valuation.friendly import friendly
 from app.valuation.models import CompanyOverview, Fundamental
 from app.valuation.schemas import OverviewResponse, PeerValuation, ValuationResponse, YearValuation
 
@@ -178,7 +179,8 @@ def get_overview(db: Session, code: str) -> OverviewResponse:
     me = repository.find(db, code)
     return OverviewResponse(
         available=True,
-        summary=[s for s in saved.summary.split("\n") if s],
+        # 네이버 보고서 말투("~하고 있음")를 해요체로. 빈 문장은 뺀다
+        summary=[friendly(s) for s in saved.summary.split("\n") if s.strip(" .")],
         industry_name=me.industry_name if me else None,
         years=years,
         trend_comment=_trend_comment(years),
