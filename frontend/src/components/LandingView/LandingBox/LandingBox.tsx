@@ -1,5 +1,6 @@
 'use client'
 // NewStocks의 랜딩 섹션(01·02·03) 화면을 옮긴 것. 문구는 이 서비스(차트·뉴스 / 리포트 요약 / 관심종목)에 맞게 바꿨다.
+import { BRAND } from "@/lib/brand";
 import styles from './landingbox.module.css'
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
@@ -107,7 +108,7 @@ export default function LandingBox({ position, right }: Props) {
           <div className={styles["start"]}>
             <div className={styles["Button-width"]}>
               <button onClick={goToStart} className={styles["button-box"]} style={{ color: "#4FE7B0", border: "2px solid #4FE7B0" }}>
-                  <div>주식초보나들이 시작하기</div>
+                  <div>{BRAND.ko} 시작하기</div>
                   <HiArrowNarrowRight size="14"/>
               </button>
             </div>

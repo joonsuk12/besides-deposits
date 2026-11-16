@@ -1,0 +1,86 @@
+/* 공통 UI 모양: 버튼·칩·카드. 화면마다 비슷한 모양을 따로 만들지 말고 이 클래스를 쓴다.
+   (예전에는 관심종목·리포트·필터·더보기가 각자 버튼 모양을 갖고 있었다)
+
+   .ui-btn        민트 테두리 버튼 (주요 동작: 차트 보기 등)
+   .ui-btn-ghost  옅은 테두리 버튼 (보조 동작: 관심 해제, 펼치기 등)
+   .ui-chip       필터 칩. 선택된 칩에 .on
+   .ui-card       테두리 카드
+   .ui-more       목록 아래 "N건 더 보기" 버튼 */
+
+.ui-btn,
+.ui-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 14px;
+  font-size: var(--fs-md);
+  border-radius: var(--r-pill);
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ui-btn {
+  color: var(--mint);
+  border: 1.5px solid var(--mint);
+}
+
+.ui-btn:hover {
+  background: var(--mint-soft);
+}
+
+.ui-btn-ghost {
+  color: var(--text-2);
+  border: 1px solid var(--line-strong);
+}
+
+.ui-btn-ghost:hover {
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.ui-chip {
+  padding: 4px 12px;
+  font-size: var(--fs-md);
+  color: var(--text-2);
+  background: none;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ui-chip:hover {
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.ui-chip.on {
+  color: var(--bg) !important;
+  background: var(--mint);
+  border-color: var(--mint);
+  font-weight: 700;
+}
+
+.ui-card {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.ui-more {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px 0;
+  font-size: var(--fs-md);
+  color: var(--mint);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+.ui-more:hover {
+  background: var(--mint-soft);
+}

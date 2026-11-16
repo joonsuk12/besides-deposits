@@ -15,6 +15,7 @@ from app.disclosure.router import router as disclosure_router
 from app.news.router import router as news_router
 from app.report.router import router as report_router
 from app.stock.router import router as stock_router
+from app.trend.router import router as trend_router
 from app.valuation.router import router as valuation_router
 
 
@@ -27,7 +28,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="주식초보나들이 API", lifespan=lifespan)
+app = FastAPI(title="비사이드디포짓(BESIDES DEPOSITS) API", lifespan=lifespan)
 
 # 프론트엔드(다른 포트)에서 오는 요청을 허용한다. Spring의 CORS 설정(WebMvcConfigurer)과 같다.
 app.add_middleware(
@@ -43,3 +44,4 @@ app.include_router(report_router)
 app.include_router(news_router)
 app.include_router(disclosure_router)
 app.include_router(valuation_router)
+app.include_router(trend_router)

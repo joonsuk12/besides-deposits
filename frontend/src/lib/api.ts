@@ -123,6 +123,7 @@ export type YearValuation = {
   operating_profit: number | null; // 억원
   roe: number | null;
   dividend: number | null;
+  source: "naver" | "dart"; // dart: 공시 사업보고서로 계산한 근사치
 };
 
 export type Overview = {
@@ -134,7 +135,17 @@ export type Overview = {
   trend_comment: string | null;
 };
 
-export const fetchOverview = (code: string) => request<Overview>(`/valuation/stock/${code}/overview`);
+export type TrendDay = { date: string; foreign: number; organ: number; individual: number; foreign_ratio: number | null };
+export type Trend = {
+  available: boolean;
+  message: string | null;
+  items: TrendDay[]; // 날짜 오름차순
+  summary: { days: number; foreign: number; organ: number; individual: number }[];
+  comment: string | null;
+};
+export const fetchTrend = (code: string, days = 180) => request<Trend>(`/trend/stock/${code}?days=${days}`);
+
+export const fetchOverview =(code: string) => request<Overview>(`/valuation/stock/${code}/overview`);
 export const fetchValuation =(code: string) => request<Valuation>(`/valuation/stock/${code}`);
 
 // 종목 로고 (NewStocks와 같은 출처). 없는 종목은 회색 원으로 보인다.

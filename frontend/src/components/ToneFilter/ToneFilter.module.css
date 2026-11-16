@@ -1,3 +1,4 @@
+/* 칩 모양은 공통 .ui-chip (app/ui.css). 여기에는 배치·크기와 좋은·나쁜 소식 글자색만 둔다 */
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -8,15 +9,6 @@
 .chips button {
   padding: 3px 10px;
   font-size: var(--fs-sm);
-  color: var(--text-2);
-  background: none;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-pill);
-  cursor: pointer;
-}
-
-.chips button:hover {
-  border-color: rgba(255, 255, 255, 0.45);
 }
 
 /* 한국 증시 관례: 좋은 쪽 빨강, 나쁜 쪽 파랑 */
@@ -30,11 +22,4 @@
 
 .check {
   color: var(--warn) !important;
-}
-
-.chips button.on {
-  color: var(--bg) !important;
-  background: var(--mint);
-  border-color: var(--mint);
-  font-weight: 700;
 }

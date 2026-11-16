@@ -3,6 +3,7 @@
 // 메뉴는 아이콘만 있으면 뜻을 알기 어려워 글자를 붙였다. 좁은 화면에서는 글자를 숨기고 아이콘만 남긴다.
 // 지금 있는 화면의 메뉴는 민트색으로 표시한다.
 
+import { BRAND } from "@/lib/brand";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -28,7 +29,7 @@ export default function Header() {
     <header className={styles["header"]}>
       <Link href="/" className={styles["brand"]}>
         <Image className={styles["logo"]} src={Logoimg} alt="" />
-        <span className={styles["name"]}>주식초보나들이</span>
+        <span className={styles["name"]}>{BRAND.ko}</span>
       </Link>
 
       <div className={styles["search"]}>

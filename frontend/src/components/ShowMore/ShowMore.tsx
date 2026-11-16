@@ -5,8 +5,6 @@
 
 import { useState, type ReactNode } from "react";
 
-import styles from "./ShowMore.module.css";
-
 export default function ShowMore<T>({
   items,
   limit = 3,
@@ -26,7 +24,7 @@ export default function ShowMore<T>({
     <>
       {children(shown)}
       {hidden > 0 && (
-        <button className={styles["more"]} onClick={() => setOpen((o) => !o)}>
+        <button className="ui-more" onClick={() => setOpen((o) => !o)}>
           {open ? "접기 ▲" : `${hidden}${unit} 더 보기 ▼`}
         </button>
       )}

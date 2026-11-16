@@ -8,15 +8,16 @@ PER·PBR을 직접 계산하고 같은 업종 회사들과 비교한다.
 - 적자 회사(EPS가 0 이하)는 PER을 계산하지 않는다.
 """
 import json
-from datetime import datetime
+from datetime import date, datetime
 from statistics import median
 
 from sqlalchemy.orm import Session
 
 from app.core import fetch_log
 from app.stock import repository as stock_repository
-from app.valuation import client, focus, repository
-from app.valuation.models import CompanyOverview, Fundamental
+from app.valuation import client, dart_client, focus, repository
+from app.valuation.friendly import friendly
+from app.valuation.models import AnnualFinancial, CompanyOverview, Fundamental
 from app.valuation.schemas import OverviewResponse, PeerValuation, ValuationResponse, YearValuation
 
 REFRESH_MIN = 720  # 재무 숫자는 분기마다 바뀌므로 반나절에 한 번이면 충분하다
@@ -175,10 +176,14 @@ def get_overview(db: Session, code: str) -> OverviewResponse:
 
     years = [_to_year(r) for r in json.loads(saved.annual_json)]
     years = [y for y in years if any(v is not None for v in (y.per, y.pbr, y.eps, y.revenue))]
+    # 네이버가 주지 않는 더 오래된 해는 공시(사업보고서)로 채운다 (최대 10년)
+    naver_years = {y.label[:4] for y in years}
+    years = [y for y in _dart_years(db, code) if y.label[:4] not in naver_years] + years
     me = repository.find(db, code)
     return OverviewResponse(
         available=True,
-        summary=[s for s in saved.summary.split("\n") if s],
+        # 네이버 보고서 말투("~하고 있음")를 해요체로. 빈 문장은 뺀다
+        summary=[friendly(s) for s in saved.summary.split("\n") if s.strip(" .")],
         industry_name=me.industry_name if me else None,
         years=years,
         trend_comment=_trend_comment(years),
@@ -229,3 +234,92 @@ def _trend_comment(years: list[YearValuation]) -> str | None:
     if est:
         parts.append(f"증권사들은 {est.label[:4]}년 이익 기준 PER을 {est.per:g}배로 예상해요.")
     return " ".join(parts) or None
+
+
+DART_YEARS = 10
+DART_REFRESH_MIN = 60 * 24 * 7  # 새 사업보고서는 1년에 한 번 나오므로 일주일에 한 번만 확인
+
+
+def _dart_years(db: Session, code: str) -> list[YearValuation]:
+    """OpenDART 사업보고서로 지난 10년 PER·PBR 근사치를 만든다.
+
+    - 그해 마지막 거래일 종가 ÷ (당기순이익 ÷ 주식 수) = PER,  종가 ÷ (자본총계 ÷ 주식 수) = PBR
+    - 주가는 액면분할을 반영한 값이라, 주식 수도 가장 최근 해 것을 모든 해에 쓴다 (예: 삼성전자 2018년 50:1 분할).
+      그래서 그 사이 자사주 소각·증자만큼은 오차가 있다 → 화면에 "근사치"로 표시
+    - 당기순이익은 비지배주주 몫이 포함돼 네이버(지배주주 기준) 숫자와 조금 다르다
+    """
+    from app.disclosure import repository as disclosure_repository  # 종목코드 → DART 회사번호
+    from app.stock import repository as stock_repository
+
+    corp = disclosure_repository.find_corp(db, code)
+    if corp is None:
+        return []
+    key = f"dart-annual:{code}"
+    if not fetch_log.is_fresh(db, key, DART_REFRESH_MIN):
+        try:
+            have = {a.year for a in repository.find_annual(db, code)}
+            this_year = date.today().year
+            for year in range(this_year - DART_YEARS, this_year):
+                if year in have:
+                    continue
+                acc = dart_client.fetch_annual(corp.corp_code, year)
+                if acc:
+                    repository.save_annual(
+                        db,
+                        AnnualFinancial(
+                            stock_code=code, year=year, revenue=acc.revenue, operating_profit=acc.operating_profit,
+                            net_income=acc.net_income, equity=acc.equity,
+                        ),
+                    )
+            fetch_log.mark_fetched(db, key)
+            db.commit()
+        except Exception as e:  # 키가 없거나 OpenDART 장애면 네이버 숫자만 보여준다
+            db.rollback()
+            print(f"  공시 재무 수집 실패({code}): {e!r}")
+
+    rows = repository.find_annual(db, code)
+    if not rows:
+        return []
+    shares = _latest_shares(db, corp.corp_code, rows[-1].year)
+    if not shares:
+        return []
+    out = []
+    for a in rows:
+        close = _year_end_close(stock_repository, db, code, a.year)
+        eps = a.net_income / shares if a.net_income is not None else None
+        bps = a.equity / shares if a.equity is not None else None
+        out.append(
+            YearValuation(
+                label=f"{a.year}.12",
+                is_estimate=False,
+                per=round(close / eps, 2) if close and eps and eps > 0 else None,
+                pbr=round(close / bps, 2) if close and bps and bps > 0 else None,
+                eps=round(eps) if eps is not None else None,
+                bps=round(bps) if bps is not None else None,
+                revenue=round(a.revenue / 1e8) if a.revenue is not None else None,  # 억원 (네이버와 같은 단위)
+                operating_profit=round(a.operating_profit / 1e8) if a.operating_profit is not None else None,
+                roe=round(a.net_income / a.equity * 100, 2) if a.net_income is not None and a.equity else None,
+                dividend=None,
+                source="dart",
+            )
+        )
+    return out
+
+
+_shares_cache: dict[str, int | None] = {}
+
+
+def _latest_shares(db: Session, corp_code: str, year: int) -> int | None:
+    if corp_code not in _shares_cache:
+        try:
+            _shares_cache[corp_code] = dart_client.fetch_shares(corp_code, year)
+        except Exception as e:
+            print(f"  주식 수 수집 실패({corp_code}): {e!r}")
+            return None
+    return _shares_cache[corp_code]
+
+
+def _year_end_close(stock_repository, db: Session, code: str, year: int) -> int | None:
+    prices = stock_repository.find_prices(db, code, date(year, 12, 1))
+    in_year = [p for p in prices if p.date.year == year]
+    return in_year[-1].close if in_year else None

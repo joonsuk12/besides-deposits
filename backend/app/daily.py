@@ -14,6 +14,7 @@ from app.news import service as news_service
 from app.report import service as report_service
 from app.stock import repository as stock_repository
 from app.stock import service as stock_service
+from app.trend import service as trend_service
 
 
 def main() -> None:
@@ -25,6 +26,8 @@ def main() -> None:
             ("오늘 리포트", lambda: report_service.collect_recent_days(db, 1)),
             ("뉴스", lambda: sum(len(news_service.get_by_stock(db, s.code, 1, 300)) for s in stock_repository.find_watched_stocks(db))),
             ("공시", lambda: disclosure_service.collect_watchlist(db)),
+            # 매매동향은 네이버가 최근 60일만 주므로 매일 받아 두면 긴 기간이 쌓인다
+            ("매매동향", lambda: sum(len(trend_service.get_by_stock(db, s.code, 7).items) for s in stock_repository.find_watched_stocks(db))),
         ]
         for name, step in steps:
             # 하나가 실패해도 나머지는 계속한다

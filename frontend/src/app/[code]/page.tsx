@@ -17,6 +17,7 @@ import ToneFilter, { type Tone } from "@/components/ToneFilter/ToneFilter";
 import StockChart, { type DayMarks } from "@/components/StockChart";
 import StockProfile from "@/components/StockProfile/StockProfile";
 import StockInfoCard from "@/components/StockInfoCard/StockInfoCard";
+import TrendCard from "@/components/TrendCard/TrendCard";
 import WatchlistSidebar from "@/components/WatchlistSidebar/WatchlistSidebar";
 import {
   addWatch,
@@ -305,6 +306,11 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
       <aside className={styles["side-container"]}>
         <section className={styles["card"]}>
           <StockInfoCard code={code} />
+        </section>
+
+        <section className={styles["card"]}>
+          <h2>👥 투자자별 매매동향</h2>
+          <TrendCard code={code} />
         </section>
 
         <section className={styles["card"]}>
