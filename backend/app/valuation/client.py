@@ -55,3 +55,25 @@ def fetch_industry_name(industry_code: str) -> str | None:
         f"/api/stocks/industry/{industry_code}", {"page": 1, "pageSize": 1}, base_url=naver.MOBILE_BASE_URL
     )
     return (d.get("groupInfo") or {}).get("name")
+
+
+@dataclass
+class AnnualRow:
+    label: str  # 예: "2025.12"
+    is_estimate: bool  # 증권사 예상치(아직 끝나지 않은 해)인지
+    values: dict[str, float | None]  # 항목 이름 → 값 (매출액, 영업이익, EPS, PER, BPS, PBR, ROE, 주당배당금 …)
+
+
+def fetch_overview(code: str) -> tuple[list[str], list[AnnualRow]]:
+    """회사 소개 문장들과 연도별 실적·지표. /api/stock/{code}/finance/annual 한 번으로 둘 다 온다."""
+    d = naver.get_json(f"/api/stock/{code}/finance/annual", base_url=naver.MOBILE_BASE_URL)
+    summary = [v.strip() for k, v in sorted((d.get("corporationSummary") or {}).items()) if v and v.strip()]
+    info = d.get("financeInfo") or {}
+    rows = []
+    for t in info.get("trTitleList") or []:
+        key = t.get("key")
+        values = {
+            r.get("title"): _num((r.get("columns") or {}).get(key, {}).get("value")) for r in info.get("rowList") or []
+        }
+        rows.append(AnnualRow(label=(t.get("title") or "").rstrip("."), is_estimate=t.get("isConsensus") == "Y", values=values))
+    return summary, rows

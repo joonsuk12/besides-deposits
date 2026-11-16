@@ -60,10 +60,6 @@
   line-height: 1.5;
 }
 
-.title:hover {
-  color: var(--mint);
-  text-decoration: underline;
-}
 
 .explain,
 .empty {
@@ -75,4 +71,115 @@
 
 .empty {
   color: var(--sub);
+}
+
+/* 좋은 소식 / 나쁜 소식 꼬리표. 뉴스와 같은 색 규칙: 좋은 쪽 빨강, 나쁜 쪽 파랑 (한국 증시 관례) */
+.tone {
+  padding: 1px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+}
+
+.tone-good {
+  color: #00051e;
+  background: #ff5a5a;
+}
+
+.tone-bad {
+  color: #00051e;
+  background: #5b9bff;
+}
+
+.tone-key {
+  color: #ffc861;
+  border: 1px solid #ffc861;
+}
+
+/* 왼쪽 색 띠로 한눈에 구분 */
+.item {
+  padding-left: 10px;
+  border-left: 3px solid transparent;
+}
+
+.item-good {
+  border-left-color: #ff5a5a;
+}
+
+.item-warn {
+  border-left-color: #5b9bff;
+}
+
+.item-key {
+  border-left-color: #ffc861;
+}
+
+.title {
+  margin: 0;
+}
+
+.detail {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(176, 176, 176, 0.08);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.detail h4 {
+  margin: 6px 0 2px;
+  font-size: 12px;
+  color: var(--sub);
+}
+
+.detail p {
+  margin: 0;
+}
+
+.detail ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.actions button,
+.actions a {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--mint);
+  cursor: pointer;
+}
+
+.actions button:hover,
+.actions a:hover {
+  text-decoration: underline;
+}
+
+.legend {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--sub);
+}
+
+.legend summary {
+  cursor: pointer;
+}
+
+.legend ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  line-height: 1.6;
+}
+
+.legend b {
+  color: #d6d8e0;
 }

@@ -17,6 +17,8 @@ class DisclosureResponse(BaseModel):
     category: str  # 예: "유상증자", "실적 발표"
     level: str  # warn / good / key / info
     explain: str  # 쉬운 설명 한 줄
+    why: str | None = None  # 왜 좋은/나쁜 소식으로 보는지 ('자세히')
+    checks: list[str] = []  # 원문에서 확인할 것 ('자세히')
     is_correction: bool  # 정정 공시 여부
     by_company: bool  # 회사가 직접 낸 공시인지 (아니면 대주주·투자자가 낸 보고)
 

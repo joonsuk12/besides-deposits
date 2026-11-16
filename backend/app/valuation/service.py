@@ -7,6 +7,7 @@ PER·PBR을 직접 계산하고 같은 업종 회사들과 비교한다.
   평균 대신 중간값을 쓰는 이유: 이익이 아주 적은 회사 하나가 PER 수백 배로 평균을 크게 흔들기 때문.
 - 적자 회사(EPS가 0 이하)는 PER을 계산하지 않는다.
 """
+import json
 from datetime import datetime
 from statistics import median
 
@@ -15,8 +16,8 @@ from sqlalchemy.orm import Session
 from app.core import fetch_log
 from app.stock import repository as stock_repository
 from app.valuation import client, focus, repository
-from app.valuation.models import Fundamental
-from app.valuation.schemas import PeerValuation, ValuationResponse
+from app.valuation.models import CompanyOverview, Fundamental
+from app.valuation.schemas import OverviewResponse, PeerValuation, ValuationResponse, YearValuation
 
 REFRESH_MIN = 720  # 재무 숫자는 분기마다 바뀌므로 반나절에 한 번이면 충분하다
 SIMILAR_PCT = 15  # 업종과 ±15% 안이면 "비슷해요"
@@ -65,6 +66,8 @@ def get_by_stock(db: Session, code: str) -> ValuationResponse:
         focus=rule.focus,
         focus_title=rule.title,
         focus_reason=rule.reason,
+        focus_also=list(rule.also),
+        focus_caution=rule.caution,
         peers=[PeerValuation(code=p.stock_code, name=p.name, per=p.per, pbr=p.pbr) for p in peers],
     )
 
@@ -140,3 +143,89 @@ def _per_comment(eps: float | None, per: float | None, gap: float | None) -> str
         note = "최근 1년 이익이 아주 적어서 PER이 크게 나와요. 이럴 땐 PER보다 PBR과 실적 흐름을 함께 보세요."
         return f"{text} {note}" if text else note
     return text
+
+
+def get_overview(db: Session, code: str) -> OverviewResponse:
+    """회사 소개 + 연도별 PER·PBR 흐름. 네이버가 주는 최근 3개 연도 실적과 올해 증권사 예상치."""
+    key = f"overview:{code}"
+    if not fetch_log.is_fresh(db, key, REFRESH_MIN):
+        try:
+            summary, rows = client.fetch_overview(code)
+            repository.save_overview(
+                db,
+                CompanyOverview(
+                    stock_code=code,
+                    summary="\n".join(summary),
+                    annual_json=json.dumps(
+                        [{"label": r.label, "is_estimate": r.is_estimate, "values": r.values} for r in rows],
+                        ensure_ascii=False,
+                    ),
+                    fetched_at=datetime.now(),
+                ),
+            )
+            fetch_log.mark_fetched(db, key)
+            db.commit()
+        except Exception as e:  # 네이버 장애로 화면 전체가 죽지 않게
+            db.rollback()
+            print(f"  회사 개요 수집 실패({code}): {e!r}")
+
+    saved = repository.find_overview(db, code)
+    if saved is None or (not saved.summary and saved.annual_json == "[]"):
+        return OverviewResponse(available=False, message="회사 소개 정보가 없는 종목이에요. ETF는 회사가 아니라서 이 정보가 없어요.")
+
+    years = [_to_year(r) for r in json.loads(saved.annual_json)]
+    years = [y for y in years if any(v is not None for v in (y.per, y.pbr, y.eps, y.revenue))]
+    me = repository.find(db, code)
+    return OverviewResponse(
+        available=True,
+        summary=[s for s in saved.summary.split("\n") if s],
+        industry_name=me.industry_name if me else None,
+        years=years,
+        trend_comment=_trend_comment(years),
+    )
+
+
+def _to_year(row: dict) -> YearValuation:
+    v = row["values"]
+    eps, per = v.get("EPS"), v.get("PER")
+    return YearValuation(
+        label=row["label"],
+        is_estimate=row["is_estimate"],
+        per=per if per is not None and per > 0 and (eps is None or eps > 0) else None,  # 적자인 해는 PER 없음
+        pbr=v.get("PBR"),
+        eps=eps,
+        bps=v.get("BPS"),
+        revenue=v.get("매출액"),
+        operating_profit=v.get("영업이익"),
+        roe=v.get("ROE"),
+        dividend=v.get("주당배당금"),
+    )
+
+
+def _trend_comment(years: list[YearValuation]) -> str | None:
+    """실제 실적이 나온 해들만 보고 흐름을 말한다 (예상치는 따로 언급)."""
+    actual = [y for y in years if not y.is_estimate]
+    if len(actual) < 2:
+        return None
+    parts = []
+    first, last = actual[0], actual[-1]
+    if first.operating_profit and last.operating_profit and first.operating_profit > 0:
+        change = (last.operating_profit / first.operating_profit - 1) * 100
+        word = "늘었어요" if change > 5 else "줄었어요" if change < -5 else "비슷해요"
+        if change >= 100:  # "564% 늘었어요"보다 "약 6.6배가 됐어요"가 읽기 쉽다
+            parts.append(f"영업이익은 {first.label[:4]}년에 비해 {last.label[:4]}년에 약 {change / 100 + 1:.1f}배가 됐어요.")
+        else:
+            parts.append(f"영업이익은 {first.label[:4]}년에 비해 {last.label[:4]}년에 {abs(change):.0f}% {word}." if word != "비슷해요"
+                     else f"영업이익은 {first.label[:4]}년과 {last.label[:4]}년이 비슷해요.")
+    loss_years = [y.label[:4] for y in actual if y.eps is not None and y.eps <= 0]
+    if loss_years:
+        parts.append(f"{', '.join(loss_years)}년은 주주 몫 순이익이 적자라 PER이 없어요.")
+    if first.pbr and last.pbr:
+        if last.pbr > first.pbr * 1.3:
+            parts.append(f"PBR은 {first.pbr:g}배에서 {last.pbr:g}배로 올랐어요. 자산에 비해 주가가 더 높게 매겨졌다는 뜻이에요.")
+        elif last.pbr < first.pbr * 0.7:
+            parts.append(f"PBR은 {first.pbr:g}배에서 {last.pbr:g}배로 내렸어요.")
+    est = next((y for y in years if y.is_estimate and y.per), None)
+    if est:
+        parts.append(f"증권사들은 {est.label[:4]}년 이익 기준 PER을 {est.per:g}배로 예상해요.")
+    return " ".join(parts) or None

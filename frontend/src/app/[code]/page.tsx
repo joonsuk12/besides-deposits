@@ -4,7 +4,7 @@
 //   왼쪽: 관심 종목 목록
 //   가운데: 차트(뉴스 N·리포트 R·공시 D 표시) → 선택한 날(가격 한 줄 + 그날 뉴스 | 공시·리포트) → 이번 주 많이 다뤄진 뉴스 3개
 //   (뉴스·공시·리포트는 3개씩만 먼저 보여주고 나머지는 "더 보기" — 초보가 정보에 묻히지 않게)
-//   오른쪽: 이 종목 요약 — 주가 수준(PER·PBR) → 최근 공시 → 최근 증권사 리포트 → 캔들 읽는 법
+//   오른쪽: 이 종목 요약 — [주가 수준 | 연간 흐름 | 회사 소개] 탭 → 최근 공시 → 최근 증권사 리포트 → 캔들 읽는 법
 
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { FaRegStar, FaStar } from "react-icons/fa";
@@ -13,9 +13,10 @@ import DisclosureList from "@/components/DisclosureList/DisclosureList";
 import NewsList from "@/components/NewsList/NewsList";
 import ReportCard from "@/components/ReportCard/ReportCard";
 import ShowMore from "@/components/ShowMore/ShowMore";
+import ToneFilter, { type Tone } from "@/components/ToneFilter/ToneFilter";
 import StockChart, { type DayMarks } from "@/components/StockChart";
 import StockProfile from "@/components/StockProfile/StockProfile";
-import ValuationCard from "@/components/ValuationCard/ValuationCard";
+import StockInfoCard from "@/components/StockInfoCard/StockInfoCard";
 import WatchlistSidebar from "@/components/WatchlistSidebar/WatchlistSidebar";
 import {
   addWatch,
@@ -45,6 +46,11 @@ const won = (n: number) => n.toLocaleString("ko-KR");
 const tone = (n: number) => (n > 0 ? "up" : n < 0 ? "down" : "");
 const sign = (n: number) => (n > 0 ? "+" : "");
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+// 필터 기준: 뉴스는 분위기 추정, 리포트는 목표주가 상향·하향
+const newsTone = (n: News): Tone | null => (n.tone === "good" ? "good" : n.tone === "bad" ? "bad" : null);
+const reportTone = (r: Report): Tone | null =>
+  r.goal_change === "상향" ? "good" : r.goal_change === "하향" ? "bad" : null;
 
 // 주말·휴일에 나온 뉴스·리포트는 그다음 거래일 캔들에 붙인다
 function toTradingDay(date: string, tradingDays: string[]): string | null {
@@ -166,10 +172,14 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
     return i < 0 ? null : { day: prices[i], before: prices[i - 1] };
   }, [prices, selectedDate]);
   const dayChange = selected?.before ? selected.day.close - selected.before.close : null;
-  // 그날 뉴스는 여러 언론사가 다룬(기사가 많이 겹친) 순서로
+  // 목록은 모두 최신순. 좋은/나쁜 소식은 필터 버튼으로 골라 본다
   const dayNews = selectedDate
-    ? [...(byDay.newsByDay.get(selectedDate) ?? [])].sort((a, b) => b.cluster_size - a.cluster_size)
+    ? [...(byDay.newsByDay.get(selectedDate) ?? [])].sort((a, b) => b.published_at.localeCompare(a.published_at))
     : [];
+  const latestReports = useMemo(
+    () => [...reports].sort((a, b) => b.write_date.localeCompare(a.write_date)),
+    [reports],
+  );
   const dayReports = selectedDate ? (byDay.reportsByDay.get(selectedDate) ?? []) : [];
   const dayDisclosures = selectedDate ? (byDay.disclosuresByDay.get(selectedDate) ?? []) : [];
 
@@ -253,9 +263,14 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
             <div className={styles["day-cols"]}>
               <div>
                 <h3>📰 이날의 주요 뉴스</h3>
-                <ShowMore key={`news-${selectedDate}`} items={dayNews} limit={3}>
+                <ToneFilter
+                  key={`news-${selectedDate}`}
+                  items={dayNews}
+                  toneOf={newsTone}
+                  labels={{ good: "좋은 소식(추정)", bad: "나쁜 소식(추정)" }}
+                >
                   {(shown) => <NewsList items={shown} empty="이날 수집된 뉴스가 없습니다. (최근 뉴스 위주로 모읍니다)" />}
-                </ShowMore>
+                </ToneFilter>
               </div>
               <div>
                 <h3>📢 이날의 공시</h3>
@@ -286,8 +301,7 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
       {/* 오른쪽: 날짜와 상관없는 이 종목 요약 */}
       <aside className={styles["side-container"]}>
         <section className={styles["card"]}>
-          <h2>💰 주가 수준 (PER·PBR)</h2>
-          <ValuationCard code={code} />
+          <StockInfoCard code={code} />
         </section>
 
         <section className={styles["card"]}>
@@ -308,7 +322,12 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
         <section className={styles["card"]}>
           <h2>증권사 리포트</h2>
           {reports.length === 0 && <p className={styles["placeholder"]}>최근 나온 리포트가 없습니다. ETF나 소형주는 리포트가 드뭅니다.</p>}
-          <ShowMore key={code} items={reports} limit={3}>
+          <ToneFilter
+            key={code}
+            items={latestReports}
+            toneOf={reportTone}
+            labels={{ good: "▲ 목표가 상향", bad: "▼ 목표가 하향" }}
+          >
             {(shown) => (
               <div className={styles["stack"]}>
                 {shown.map((r) => (
@@ -316,7 +335,7 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
                 ))}
               </div>
             )}
-          </ShowMore>
+          </ToneFilter>
         </section>
 
         <section className={`${styles["card"]} ${styles["guide"]}`}>

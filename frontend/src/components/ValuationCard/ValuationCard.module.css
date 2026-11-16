@@ -133,3 +133,22 @@
   color: var(--mint);
   cursor: help;
 }
+
+.focus .sub-h {
+  margin-top: 8px;
+  font-weight: 600;
+  color: var(--sub);
+  font-size: 12px;
+}
+
+.focus ul {
+  margin: 2px 0 0;
+  padding-left: 18px;
+  line-height: 1.55;
+  color: #d6d8e0;
+}
+
+.focus .caution {
+  margin-top: 8px;
+  color: #ffc861;
+}

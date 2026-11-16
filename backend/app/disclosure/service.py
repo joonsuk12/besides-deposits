@@ -102,6 +102,8 @@ def _to_response(d: Disclosure) -> DisclosureResponse:
         category=rule.category,
         level=rule.level,
         explain=rule.explain,
+        why=rule.why,
+        checks=list(rule.checks),
         is_correction=keypoints.is_correction(d.report_nm),
         by_company=d.filer.replace(" ", "") == d.corp_name.replace(" ", ""),
     )

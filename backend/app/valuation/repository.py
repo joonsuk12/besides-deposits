@@ -2,7 +2,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.valuation.models import Fundamental
+from app.valuation.models import CompanyOverview, Fundamental
 
 
 def find(db: Session, code: str) -> Fundamental | None:
@@ -26,3 +26,11 @@ def find_industry_name(db: Session, industry_code: str) -> str | None:
 
 def save(db: Session, row: Fundamental) -> None:
     db.merge(row)  # 있으면 덮어쓰고 없으면 넣는다 (JPA의 merge와 같다)
+
+
+def find_overview(db: Session, code: str) -> CompanyOverview | None:
+    return db.get(CompanyOverview, code)
+
+
+def save_overview(db: Session, row: CompanyOverview) -> None:
+    db.merge(row)

@@ -1,0 +1,40 @@
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+
+.chips button {
+  padding: 3px 10px;
+  font-size: 12px;
+  color: var(--sub);
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.chips button:hover {
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+/* 한국 증시 관례: 좋은 쪽 빨강, 나쁜 쪽 파랑 */
+.good {
+  color: #ff5a5a !important;
+}
+
+.bad {
+  color: #5b9bff !important;
+}
+
+.check {
+  color: #ffc861 !important;
+}
+
+.chips button.on {
+  color: #00051e !important;
+  background: var(--mint);
+  border-color: var(--mint);
+  font-weight: 700;
+}
