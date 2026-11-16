@@ -1,26 +1,26 @@
 "use client";
 // 공시 목록. 공시마다 좋은 소식/나쁜 소식 꼬리표, 분류, 쉬운 설명 한 줄을 보여준다.
 // 리포트 카드처럼 "자세히"(왜 그렇게 보는지 + 원문에서 확인할 것)와 "원문 ↗"이 있다.
-// limit: 중요한 순서(나쁜 소식 → 좋은 소식 → 중요 → 참고, 같으면 최신순)로 앞의 몇 개만 보여주고
-//        나머지는 "더 보기"로 펼친다.
+// 순서는 최신순 그대로. 좋은 소식 / 나쁜 소식 / 내용 확인 필터로 골라 볼 수 있다.
+// limit: 앞의 몇 개만 보여주고 나머지는 "더 보기"로 펼친다.
 
 import { useState } from "react";
 
 import type { Disclosure } from "@/lib/api";
-import ShowMore from "@/components/ShowMore/ShowMore";
+import ToneFilter, { type Tone } from "@/components/ToneFilter/ToneFilter";
 import styles from "./DisclosureList.module.css";
 
 // 공시 이름만 보고 붙이는 것이라 "보통"이라고 단서를 단다 (뉴스의 "추정"과 같은 뜻)
 const TONE = {
   warn: { label: "⚠️ 나쁜 소식 (보통)", cls: "tone-bad" },
   good: { label: "👍 좋은 소식 (보통)", cls: "tone-good" },
-  key: { label: "🔎 중요 · 내용을 봐야 알아요", cls: "tone-key" },
+  key: { label: "🔎 내용 확인", cls: "tone-key" },
   info: null,
 };
-const LEVEL_RANK = { warn: 0, good: 1, key: 2, info: 3 };
 
-export const byImportance = (a: Disclosure, b: Disclosure) =>
-  LEVEL_RANK[a.level] - LEVEL_RANK[b.level] || b.date.localeCompare(a.date);
+// 필터용: 공시 등급 → 좋은/나쁜/내용 확인
+const TONE_OF: Record<Disclosure["level"], Tone | null> = { good: "good", warn: "bad", key: "check", info: null };
+const byDate = (a: Disclosure, b: Disclosure) => b.date.localeCompare(a.date) || b.rcept_no.localeCompare(a.rcept_no);
 
 function Item({ d }: { d: Disclosure }) {
   const [open, setOpen] = useState(false);
@@ -85,7 +85,7 @@ export default function DisclosureList({
 
   const kept = skipInfo ? items.filter((d) => d.level !== "info") : items;
   const skipped = items.length - kept.length;
-  const sorted = limit ? [...kept].sort(byImportance) : kept;
+  const sorted = [...kept].sort(byDate);
   const skipNote =
     skipped > 0 ? (
       <p className={styles["empty"]}>
@@ -103,16 +103,44 @@ export default function DisclosureList({
 
   return (
     <>
-      <ShowMore items={sorted} limit={limit ?? sorted.length}>
-        {(shown) => (
-          <ul className={styles["list"]}>
-            {shown.map((d) => (
-              <Item key={d.rcept_no} d={d} />
-            ))}
-          </ul>
-        )}
-      </ShowMore>
+      <ToneFilter
+        items={sorted}
+        toneOf={(d) => TONE_OF[d.level]}
+        // 필터는 건수가 많은 '최근 공시'에만. 하루치 목록은 몇 건뿐이라 버튼이 오히려 복잡하다
+        labels={skipInfo ? { good: "👍 좋은 소식", bad: "⚠️ 나쁜 소식", check: "🔎 내용 확인" } : {}}
+        limit={limit ?? sorted.length}
+      >
+        {(shown) =>
+          shown.length === 0 ? (
+            <p className={styles["empty"]}>해당하는 공시가 없어요.</p>
+          ) : (
+            <ul className={styles["list"]}>
+              {shown.map((d) => (
+                <Item key={d.rcept_no} d={d} />
+              ))}
+            </ul>
+          )
+        }
+      </ToneFilter>
       {skipNote}
+      {skipInfo && (
+      <details className={styles["legend"]}>
+        <summary>꼬리표 뜻</summary>
+        <ul>
+          <li>
+            <b>👍 좋은 소식 (보통)</b>: 배당, 자사주 매입·소각, 큰 공급 계약처럼 주주에게 보통 좋게 받아들여지는 공시
+          </li>
+          <li>
+            <b>⚠️ 나쁜 소식 (보통)</b>: 유상증자, 전환사채, 계약 해지, 소송·사고처럼 주가에 부담이 될 수 있는 공시
+          </li>
+          <li>
+            <b>🔎 내용 확인</b>: 실적 발표, 합병·분할, 시설 투자처럼 큰 일이지만 좋을지 나쁠지는 숫자와 조건을 봐야
+            아는 공시. &quot;자세히&quot;에 무엇을 확인할지 적어 뒀어요.
+          </li>
+          <li>&quot;보통&quot;은 공시 제목만 보고 붙였다는 뜻이에요. 실제 영향은 원문의 금액·조건에 따라 달라요.</li>
+        </ul>
+      </details>
+      )}
     </>
   );
 }
