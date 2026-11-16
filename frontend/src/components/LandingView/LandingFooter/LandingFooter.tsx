@@ -1,4 +1,5 @@
 'use client';
+import { BRAND } from "@/lib/brand";
 import styles from './landingfooter.module.css'
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -31,7 +32,7 @@ export default function LandingFooter() {
       <div className={`${styles["footer"]} ${styles['scroll-animation']} ${isVisible ? styles['footer-animation-show'] : ''}`}>
         <div className={styles["footer-contents"]}>
           <div className={styles["footer-box"]}>
-            <div className={styles["footer-title"]}><span>주식초보나들이</span></div>
+            <div className={styles["footer-title"]}><span>{BRAND.ko}</span></div>
             <div className={styles["footer-content"]}>주식 초보의 첫 나들이길</div>
             <div className={styles["footer-content"]}>혼자 쓰는 개인용 서비스</div>
           </div>

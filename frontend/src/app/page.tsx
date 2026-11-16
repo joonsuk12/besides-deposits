@@ -5,6 +5,7 @@
 //   관심종목이 없으면(처음 방문): 시작 안내 3단계 + 오늘의 리포트 요약
 // 처음 온 사람을 위한 긴 소개는 /intro, 기능 설명은 /guide에 있다.
 
+import { BRAND } from "@/lib/brand";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -147,7 +148,7 @@ export default function HomePage() {
       <div className={styles["head"]}>
         <div>
           <p className={styles["date"]}>{todayLabel}</p>
-          <h1>{firstVisit ? "주식초보나들이에 오신 걸 환영해요" : "오늘 볼 것"}</h1>
+          <h1>{firstVisit ? `${BRAND.ko}에 오신 걸 환영해요` : "오늘 볼 것"}</h1>
         </div>
         <div className={styles["head-links"]}>
           <Link href="/guide">처음이라면 도움말 →</Link>

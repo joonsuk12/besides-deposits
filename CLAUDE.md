@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-주식 초보용 개인 웹서비스 "주식초보나들이". 대화를 시작하면 먼저 `README.md`와 `docs/decisions.md`를 읽고 그 결정들을 전제로 이어간다.
+주식 초보용 개인 웹서비스 "비사이드디포짓(BESIDES DEPOSITS)" (2026-11-16 이전 이름: 주식초보나들이, 레포 이름은 그대로 `stock-newbie-stroll`). 대화를 시작하면 먼저 `README.md`와 `docs/decisions.md`를 읽고 그 결정들을 전제로 이어간다.
 
 ## 사용자
 

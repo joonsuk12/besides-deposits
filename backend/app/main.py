@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="주식초보나들이 API", lifespan=lifespan)
+app = FastAPI(title="비사이드디포짓(BESIDES DEPOSITS) API", lifespan=lifespan)
 
 # 프론트엔드(다른 포트)에서 오는 요청을 허용한다. Spring의 CORS 설정(WebMvcConfigurer)과 같다.
 app.add_middleware(

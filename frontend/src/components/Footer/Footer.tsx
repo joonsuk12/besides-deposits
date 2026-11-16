@@ -1,3 +1,4 @@
+import { BRAND } from "@/lib/brand";
 import styles from './footer.module.css'
 import Logoimg from '@/assets/logo.png'
 import Image from 'next/image';
@@ -30,8 +31,8 @@ export default function Footer() {
           </svg>
         </p> */}
         <div className={styles["logo-title"]}>
-          <div id={styles["main-title"]}>주식초보나들이</div>
-          <div id={styles["sub-title"]}>STOCK NEWBIE STROLL</div>
+          <div id={styles["main-title"]}>{BRAND.ko}</div>
+          <div id={styles["sub-title"]}>{BRAND.en}</div>
         </div>
       </div>
       <div className={styles["footer-content"]}>

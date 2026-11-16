@@ -1,3 +1,4 @@
+import { BRAND } from "@/lib/brand";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Header from "@/components/Header/Header";
@@ -6,8 +7,8 @@ import "./globals.css";
 import "./chart.css";
 
 export const metadata: Metadata = {
-  title: "주식초보나들이",
-  description: "차트, 뉴스, 증권사 리포트를 초보 눈높이로",
+  title: `${BRAND.ko} | ${BRAND.en}`,
+  description: BRAND.tagline,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
