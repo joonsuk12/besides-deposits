@@ -101,7 +101,7 @@ export default function ReportsPage() {
           {FILTERS.map((f) => (
             <button
               key={f.key}
-              className={`${styles["chip"]} ${filter === f.key ? styles["active"] : ""}`}
+              className={`ui-chip ${filter === f.key ? "on" : ""}`}
               onClick={() => setFilter(f.key)}
             >
               {f.label} <span className={styles["count"]}>{counts[f.key]}</span>

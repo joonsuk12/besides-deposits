@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import Header from "@/components/Header/Header";
 import { pretendard } from "./fonts";
 import "./globals.css";
+import "./ui.css";
 import "./chart.css";
 
 export const metadata: Metadata = {

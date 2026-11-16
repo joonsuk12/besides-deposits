@@ -40,13 +40,13 @@ export default function ToneFilter<T>({
     <>
       {buttons.length > 0 && (
         <div className={styles["chips"]}>
-          <button className={tone === "all" ? styles["on"] : ""} onClick={() => setTone("all")}>
+          <button className={`ui-chip ${tone === "all" ? "on" : ""}`} onClick={() => setTone("all")}>
             전체 {items.length}
           </button>
           {buttons.map((t) => (
             <button
               key={t}
-              className={`${styles[t]} ${tone === t ? styles["on"] : ""}`}
+              className={`ui-chip ${styles[t]} ${tone === t ? "on" : ""}`}
               onClick={() => setTone(t)}
             >
               {labels[t]} {counts[t]}

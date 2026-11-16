@@ -62,27 +62,6 @@
   gap: 6px;
 }
 
-.chip {
-  padding: 4px 12px;
-  font-size: var(--fs-md);
-  color: var(--text-2);
-  border-radius: var(--r-pill);
-  border: 1px solid var(--line-strong);
-  background: transparent;
-  cursor: pointer;
-}
-
-.chip:hover {
-  border-color: rgba(255, 255, 255, 0.45);
-}
-
-.active {
-  color: var(--bg);
-  background: var(--mint);
-  border-color: var(--mint);
-  font-weight: 700;
-}
-
 .count {
   font-size: var(--fs-sm);
   margin-left: 2px;

@@ -85,7 +85,7 @@ export default function WatchlistPage() {
         </p>
         {items && items.length > 0 && (
           <button
-            className={styles["btn-ghost"]}
+            className="ui-btn-ghost"
             onClick={() => setOpen(allOpen ? new Set() : new Set(items.map((s) => s.code)))}
           >
             {allOpen ? "모두 접기 ▲" : "모두 펼치기 ▼"}
@@ -110,7 +110,7 @@ export default function WatchlistPage() {
           const goodD = important.filter((d) => d.level === "good").length;
           const badD = important.filter((d) => d.level === "warn").length;
           return (
-            <article key={s.code} className={styles["card"]}>
+            <article key={s.code} className={`ui-card ${styles["card"]}`}>
               <header className={styles["card-head"]}>
                 <Link href={`/${s.code}`} className={styles["name"]}>
                   <StockProfile stockName={s.name} stockId={s.code} stockMarket={s.market} />
@@ -129,13 +129,13 @@ export default function WatchlistPage() {
                   </div>
                 )}
                 <div className={styles["actions"]}>
-                  <button className={styles["btn-ghost"]} onClick={() => toggle(s.code)} aria-expanded={isOpen}>
+                  <button className="ui-btn-ghost" onClick={() => toggle(s.code)} aria-expanded={isOpen}>
                     {isOpen ? "접기 ▲" : "펼치기 ▼"}
                   </button>
-                  <Link href={`/${s.code}`} className={styles["btn"]}>
+                  <Link href={`/${s.code}`} className="ui-btn">
                     차트 보기
                   </Link>
-                  <button className={styles["btn-ghost"]} onClick={() => handleRemove(s.code)}>
+                  <button className="ui-btn-ghost" onClick={() => handleRemove(s.code)}>
                     관심 해제
                   </button>
                 </div>
