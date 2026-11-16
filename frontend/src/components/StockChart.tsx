@@ -28,7 +28,7 @@ import {
   type Time,
 } from "lightweight-charts";
 import type { Price } from "@/lib/api";
-import { bollinger, macd, rsi, sma, type Series } from "@/lib/indicators";
+import { bollinger, ichimoku, macd, rsi, sma, stochastic, type Series } from "@/lib/indicators";
 
 // 한국 증시 관례: 오르면 빨강, 내리면 파랑
 const UP = "#ff5a5a";
@@ -47,17 +47,41 @@ const ORDER: Interval[] = ["day", "week", "month", "year"];
 const NAME: Record<Interval, string> = { day: "일봉", week: "주봉", month: "월봉", year: "연봉" };
 
 // 보조지표 설정. 초보 화면이 복잡하지 않게 기본은 이동평균선만 켠다
-type Indicators = { ma: number[]; bb: boolean; rsi: boolean; macd: boolean };
+type Indicators = {
+  ma: number[];
+  bb: boolean;
+  rsi: boolean;
+  macd: boolean;
+  w52: boolean; // 52주 최고·최저선
+  ichimoku: boolean; // 일목균형표
+  stoch: boolean; // 스토캐스틱
+};
 const MA_PERIODS = [5, 20, 60, 120]; // 한국 증권사 앱 기본값 (1주·1달·3달·6달 거래일)
 const MA_COLORS: Record<number, string> = { 5: "#ffd84d", 20: "#ff7ad9", 60: "#4fe7b0", 120: "#b18cff" };
-const DEFAULT_IND: Indicators = { ma: MA_PERIODS, bb: false, rsi: false, macd: false };
+const DEFAULT_IND: Indicators = { ma: MA_PERIODS, bb: false, rsi: false, macd: false, w52: false, ichimoku: false, stoch: false };
 const IND_KEY = "stroll.indicators";
 const IND_HELP = {
   ma: "최근 N개 봉 종가의 평균을 이은 선. 짧은 선이 긴 선을 뚫고 오르면 골든크로스, 내리면 데드크로스라고 불러요.",
   bb: "20일 평균선 위아래로 평소 움직임 폭(표준편차 2배)만큼 띠를 그려요. 띠 밖으로 나가면 평소보다 많이 움직인 거예요.",
   rsi: "최근 14개 봉 동안 오른 힘이 얼마나 센지 0~100으로. 70 이상은 과열, 30 이하는 침체로 봐요.",
   macd: "짧은 평균(12)과 긴 평균(26)의 차이. 신호선(9)을 위로 뚫으면 오르는 힘이 세지는 신호로 봐요.",
+  w52: "최근 1년(52주) 동안 가장 높았던·낮았던 가격을 가로선으로. 지금 주가가 1년 중 어디쯤인지 한눈에 봐요.",
+  ichimoku: "일본에서 만든 지표로 한국에서도 인기예요. 전환선·기준선과, 앞으로 밀어 그린 두 선행스팬 사이 '구름'을 봐요. 주가가 구름 위면 강세, 아래면 약세로 봐요.",
+  stoch: "최근 14개 봉의 최고·최저 사이에서 지금 가격 위치(0~100). 80 이상 과열, 20 이하 침체. RSI보다 민감해요.",
 };
+const ICHI = { tenkan: "#ff9f43", kijun: "#54a0ff", spanA: "rgba(255,90,90,0.75)", spanB: "rgba(91,155,255,0.75)", lagging: "rgba(200,200,200,0.5)" };
+
+// 봉 하나 뒤의 날짜 (일목균형표 선행스팬을 미래 자리에 그리기 위해)
+function nextTime(t: string, interval: Interval): string {
+  const d = new Date(`${t}T00:00:00Z`);
+  if (interval === "day") {
+    do d.setUTCDate(d.getUTCDate() + 1);
+    while (d.getUTCDay() === 0 || d.getUTCDay() === 6); // 주말 건너뛰기
+  } else if (interval === "week") d.setUTCDate(d.getUTCDate() + 7);
+  else if (interval === "month") d.setUTCMonth(d.getUTCMonth() + 1, 1);
+  else d.setUTCFullYear(d.getUTCFullYear() + 1, 0, 1);
+  return d.toISOString().slice(0, 10);
+}
 
 function loadIndicators(): Indicators {
   try {
@@ -163,8 +187,17 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
   const indRef = useRef<Indicators>(DEFAULT_IND);
   indRef.current = ind;
   const indSeriesRef = useRef<ISeriesApi<"Line" | "Histogram">[]>([]);
+  const priceLinesRef = useRef<ReturnType<ISeriesApi<"Candlestick">["createPriceLine"]>[]>([]); // 52주 선
   // 지금 그려진 지표 값 (값 표시줄용)
-  const indDataRef = useRef<{ ma: Record<number, Series>; bb?: ReturnType<typeof bollinger>; rsi?: Series; macd?: ReturnType<typeof macd> }>({ ma: {} });
+  const indDataRef = useRef<{
+    ma: Record<number, Series>;
+    bb?: ReturnType<typeof bollinger>;
+    rsi?: Series;
+    macd?: ReturnType<typeof macd>;
+    stoch?: ReturnType<typeof stochastic>;
+    ichimoku?: ReturnType<typeof ichimoku>;
+    w52?: { high: number; low: number };
+  }>({ ma: {} });
   const legendRef = useRef<HTMLDivElement>(null);
 
   // 최신 콜백·표시를 차트를 다시 만들지 않고 쓰기 위한 보관함
@@ -230,14 +263,34 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
       }
     }
     indSeriesRef.current = [];
+    const candles = candlesRef.current;
+    for (const pl of priceLinesRef.current) {
+      try {
+        candles?.removePriceLine(pl);
+      } catch {
+        // 이미 사라진 차트
+      }
+    }
+    priceLinesRef.current = [];
     // 거래량(1번 칸) 아래에 붙였던 RSI·MACD 칸 지우기
     for (let i = chart.panes().length - 1; i >= 2; i--) chart.removePane(i);
 
     const bars = barsRef.current;
     const closes = bars.map((b) => b.close);
+    const highs = bars.map((b) => b.high);
+    const lows = bars.map((b) => b.low);
     const cfg = indRef.current;
     const data: typeof indDataRef.current = { ma: {} };
-    const toLine = (vals: Series) => bars.map((b, i) => (vals[i] === null ? { time: b.time } : { time: b.time, value: vals[i] as number }));
+    // 일목균형표를 켜면 선행스팬을 그릴 미래 자리(26칸)를 시간축에 덧붙인다
+    const times = bars.map((b) => b.time);
+    if (cfg.ichimoku && bars.length) {
+      for (let k = 0; k < 26; k++) times.push(nextTime(times[times.length - 1], intervalRef.current));
+    }
+    if (candles) {
+      const candleData = bars.map((b) => ({ time: b.time, open: b.open, high: b.high, low: b.low, close: b.close }));
+      candles.setData([...candleData, ...times.slice(bars.length).map((t) => ({ time: t }))]);
+    }
+    const toLine = (vals: Series) => times.map((t, i) => (vals[i] === null || vals[i] === undefined ? { time: t } : { time: t, value: vals[i] as number }));
     const addLine = (vals: Series, color: string, pane: number, style: LineStyle = LineStyle.Solid, width: 1 | 2 = 1) => {
       const sr = chart.addSeries(
         LineSeries,
@@ -267,7 +320,36 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
       addLine(data.bb.upper, "rgba(200,200,200,0.55)", 0, LineStyle.Dashed);
       addLine(data.bb.lower, "rgba(200,200,200,0.55)", 0, LineStyle.Dashed);
     }
+    if (cfg.ichimoku) {
+      data.ichimoku = ichimoku(highs, lows, closes);
+      addLine(data.ichimoku.spanA, ICHI.spanA, 0);
+      addLine(data.ichimoku.spanB, ICHI.spanB, 0);
+      addLine(data.ichimoku.tenkan, ICHI.tenkan, 0);
+      addLine(data.ichimoku.kijun, ICHI.kijun, 0);
+      addLine(data.ichimoku.lagging, ICHI.lagging, 0, LineStyle.Dotted);
+    }
+    if (cfg.w52 && candles && prices.length) {
+      // 봉 단위와 상관없이 일봉 최근 1년(약 250거래일)으로 계산
+      const yearAgo = shiftDate(prices[prices.length - 1].date, -365);
+      const lastYear = prices.filter((p) => p.date > yearAgo);
+      const high = Math.max(...lastYear.map((p) => p.high));
+      const low = Math.min(...lastYear.map((p) => p.low));
+      data.w52 = { high, low };
+      priceLinesRef.current.push(
+        candles.createPriceLine({ price: high, color: "rgba(255,90,90,0.8)", lineStyle: LineStyle.LargeDashed, lineWidth: 1, axisLabelVisible: true, title: "52주 최고" }),
+        candles.createPriceLine({ price: low, color: "rgba(91,155,255,0.8)", lineStyle: LineStyle.LargeDashed, lineWidth: 1, axisLabelVisible: true, title: "52주 최저" }),
+      );
+    }
     let pane = 2;
+    if (cfg.stoch) {
+      data.stoch = stochastic(highs, lows, closes);
+      const sr = addLine(data.stoch.k, "#4fe7b0", pane);
+      addLine(data.stoch.d, "#ff7ad9", pane);
+      sr.createPriceLine({ price: 80, color: "rgba(255,90,90,0.6)", lineStyle: LineStyle.Dashed, lineWidth: 1, axisLabelVisible: true, title: "과열" });
+      sr.createPriceLine({ price: 20, color: "rgba(91,155,255,0.6)", lineStyle: LineStyle.Dashed, lineWidth: 1, axisLabelVisible: true, title: "침체" });
+      chart.panes()[pane]?.setHeight(90);
+      pane += 1;
+    }
     if (cfg.rsi) {
       data.rsi = rsi(closes);
       const sr = addLine(data.rsi, "#ffc861", pane);
@@ -280,9 +362,9 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
       data.macd = macd(closes);
       const hist = chart.addSeries(HistogramSeries, { priceLineVisible: false, lastValueVisible: false }, pane);
       hist.setData(
-        bars.map((b, i) => {
+        times.map((t, i) => {
           const v = data.macd!.hist[i];
-          return v === null ? { time: b.time } : { time: b.time, value: v, color: v >= 0 ? "rgba(255,90,90,0.5)" : "rgba(91,155,255,0.5)" };
+          return v === null || v === undefined ? { time: t } : { time: t, value: v, color: v >= 0 ? "rgba(255,90,90,0.5)" : "rgba(91,155,255,0.5)" };
         }),
       );
       indSeriesRef.current.push(hist);
@@ -310,6 +392,12 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
     if (d.bb) parts.push(`<span class="lg-sub">볼린저 ${fmt(d.bb.lower[i])} ~ ${fmt(d.bb.upper[i])}</span>`);
     if (d.rsi) parts.push(`<span style="color:#ffc861">RSI ${fmt(d.rsi[i], 1)}</span>`);
     if (d.macd) parts.push(`<span style="color:#4fe7b0">MACD ${fmt(d.macd.macd[i])}</span> <span style="color:#ff7ad9">신호 ${fmt(d.macd.signal[i])}</span>`);
+    if (d.stoch) parts.push(`<span style="color:#4fe7b0">스토캐스틱 %K ${fmt(d.stoch.k[i], 1)}</span> <span style="color:#ff7ad9">%D ${fmt(d.stoch.d[i], 1)}</span>`);
+    if (d.ichimoku)
+      parts.push(
+        `<span style="color:${ICHI.tenkan}">전환 ${fmt(d.ichimoku.tenkan[i])}</span> <span style="color:${ICHI.kijun}">기준 ${fmt(d.ichimoku.kijun[i])}</span> <span class="lg-sub">구름 ${fmt(d.ichimoku.spanA[i])} ~ ${fmt(d.ichimoku.spanB[i])}</span>`,
+      );
+    if (d.w52) parts.push(`<span class="lg-sub">52주 ${fmt(d.w52.low)} ~ ${fmt(d.w52.high)}</span>`);
     el.innerHTML = parts.join(" · ");
   };
 
@@ -525,7 +613,10 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
               {(
                 [
                   ["bb", "볼린저밴드"],
+                  ["w52", "52주 최고·최저선"],
+                  ["ichimoku", "일목균형표"],
                   ["rsi", "RSI (과열·침체)"],
+                  ["stoch", "스토캐스틱 (과열·침체)"],
                   ["macd", "MACD (추세 전환)"],
                 ] as const
               ).map(([key, label]) => (
@@ -552,7 +643,7 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
       <div
         ref={containerRef}
         className="chart"
-        style={{ "--chart-extra": `${(ind.rsi ? 90 : 0) + (ind.macd ? 100 : 0)}px` } as React.CSSProperties}
+        style={{ "--chart-extra": `${(ind.rsi ? 90 : 0) + (ind.stoch ? 90 : 0) + (ind.macd ? 100 : 0)}px` } as React.CSSProperties}
       />
       <div ref={tooltipRef} className="chart-tooltip" />
     </div>

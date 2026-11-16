@@ -15,6 +15,7 @@ from app.disclosure.router import router as disclosure_router
 from app.news.router import router as news_router
 from app.report.router import router as report_router
 from app.stock.router import router as stock_router
+from app.trend.router import router as trend_router
 from app.valuation.router import router as valuation_router
 
 
@@ -43,3 +44,4 @@ app.include_router(report_router)
 app.include_router(news_router)
 app.include_router(disclosure_router)
 app.include_router(valuation_router)
+app.include_router(trend_router)
