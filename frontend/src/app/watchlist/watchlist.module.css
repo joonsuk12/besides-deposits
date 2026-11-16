@@ -6,7 +6,7 @@
 
 .head h1 {
   margin: 0;
-  font-size: 24px;
+  font-size: var(--fs-2xl);
   color: var(--mint);
 }
 
@@ -15,7 +15,7 @@
 .placeholder,
 .asof {
   color: var(--sub);
-  font-size: 14px;
+  font-size: var(--fs-base);
 }
 
 .list {
@@ -26,7 +26,7 @@
 
 .card {
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--r-md);
   padding: 16px 18px;
 }
 
@@ -51,12 +51,12 @@
 }
 
 .price {
-  font-size: 20px;
+  font-size: var(--fs-xl);
 }
 
 .asof {
   font-weight: 400;
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 
 .actions {
@@ -68,8 +68,8 @@
 .btn,
 .btn-ghost {
   padding: 5px 14px;
-  font-size: 13px;
-  border-radius: 999px;
+  font-size: var(--fs-md);
+  border-radius: var(--r-pill);
   cursor: pointer;
   background: transparent;
 }
@@ -97,12 +97,12 @@
 .section {
   padding: 12px 14px;
   background: rgba(176, 176, 176, 0.07);
-  border-radius: 8px;
+  border-radius: var(--r-md);
 }
 
 .section h2 {
   margin: 0 0 6px;
-  font-size: 15px;
+  font-size: var(--fs-lg);
 }
 
 .placeholder {
@@ -111,11 +111,11 @@
 }
 
 .placeholder b {
-  color: #fff;
+  color: var(--text);
 }
 
 .ext {
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: var(--mint);
 }
 

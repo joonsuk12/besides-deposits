@@ -3,15 +3,21 @@
   display: flex;
   align-items: flex-start;
   width: 100%;
+  max-width: var(--page-max); /* 아주 넓은 모니터에서 차트가 끝없이 늘어나지 않게 */
+  margin: 0 auto;
 }
 
+/* 관심종목 목록: 화면 높이만큼만, 스크롤해도 따라온다 (예전에는 페이지 끝까지 빈 칸이 늘어났다) */
 .like-container {
   width: 15%;
   min-width: 180px;
+  max-width: 240px;
   border-right: 1px solid var(--line);
   position: sticky;
-  top: 0;
-  align-self: stretch;
+  top: var(--header-h);
+  align-self: flex-start;
+  height: calc(100vh - var(--header-h));
+  overflow-y: auto;
 }
 
 .mid-container {
@@ -22,10 +28,12 @@
 
 .side-container {
   width: 30%;
-  min-width: 300px;
+  min-width: 320px;
+  max-width: 480px;
   padding: 16px 16px 32px 0;
   display: grid;
   gap: 16px;
+  align-content: start;
 }
 
 .chartheader {
@@ -58,7 +66,7 @@
 }
 
 .price {
-  font-size: 26px;
+  font-size: var(--fs-2xl);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -67,7 +75,7 @@
 
 .asof {
   color: var(--sub);
-  font-size: 13px;
+  font-size: var(--fs-md);
 }
 
 .periods {
@@ -78,10 +86,10 @@
 
 .chip {
   padding: 3px 12px;
-  font-size: 13px;
+  font-size: var(--fs-md);
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   cursor: pointer;
 }
 
@@ -103,7 +111,7 @@
 .placeholder,
 .notice {
   color: var(--sub);
-  font-size: 13px;
+  font-size: var(--fs-md);
 }
 
 .notice {
@@ -118,12 +126,12 @@
 .news h2,
 .card h2 {
   margin: 12px 0 8px;
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .card {
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--r-md);
   padding: 4px 16px 16px;
 }
 
@@ -134,7 +142,7 @@
 .guide ul {
   margin: 0;
   padding-left: 18px;
-  font-size: 14px;
+  font-size: var(--fs-base);
   line-height: 1.6;
 }
 
@@ -142,6 +150,8 @@
   margin-top: 6px;
 }
 
+/* 중간 화면: 관심종목 목록은 숨기고(헤더 ☆ 메뉴로 간다), 오른쪽 카드들은 차트 아래에 2열로.
+   예전에는 카드가 화면 전체 폭(약 1,100px)으로 늘어나 글이 너무 길고 빈 곳이 많았다. */
 @media (max-width: 1100px) {
   .mainpage {
     flex-wrap: wrap;
@@ -153,14 +163,30 @@
 
   .side-container {
     width: 100%;
+    max-width: none;
+    min-width: 0;
     padding: 0 16px 32px;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    align-items: start;
+  }
+}
+
+/* 좁은 화면: 한 줄에 하나 */
+@media (max-width: 720px) {
+  .mid-container {
+    padding: 0 12px 24px;
+  }
+
+  .side-container {
+    grid-template-columns: 1fr;
+    padding: 0 12px 24px;
   }
 }
 
 .desc {
   margin: -4px 0 4px;
   color: var(--sub);
-  font-size: 13px;
+  font-size: var(--fs-md);
 }
 
 .mark-n {
@@ -180,7 +206,7 @@
 
 
 .mark-d {
-  color: #ffc861;
+  color: var(--warn);
 }
 
 /* 선택한 날 (차트 바로 아래) */
@@ -188,7 +214,7 @@
   margin-top: 14px;
   padding: 12px 14px 14px;
   border: 1px solid var(--mint);
-  border-radius: 10px;
+  border-radius: var(--r-md);
 }
 
 .day-strip {
@@ -198,18 +224,18 @@
   gap: 4px 16px;
   padding: 8px 12px;
   background: rgba(176, 176, 176, 0.08);
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-base);
   font-variant-numeric: tabular-nums;
 }
 
 .day-date {
-  font-size: 15px;
+  font-size: var(--fs-lg);
 }
 
 .sub {
   color: var(--sub);
-  font-size: 13px;
+  font-size: var(--fs-md);
 }
 
 /* 그날 내용: 왼쪽 뉴스, 오른쪽 공시·리포트. 좁으면 한 칸으로 */
@@ -222,7 +248,7 @@
 
 .day-cols h3 {
   margin: 10px 0 4px;
-  font-size: 14px;
+  font-size: var(--fs-base);
 }
 
 .day-sub-h {

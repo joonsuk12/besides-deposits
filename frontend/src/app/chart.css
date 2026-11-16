@@ -13,13 +13,13 @@
   position: absolute;
   z-index: 10;
   padding: 6px 10px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   line-height: 1.6;
   font-variant-numeric: tabular-nums;
-  color: #fff;
+  color: var(--text);
   background: rgba(0, 0, 0, 0.75);
   border: 1px solid var(--mint);
-  border-radius: 3px;
+  border-radius: var(--r-sm);
   pointer-events: none;
 }
 
@@ -31,4 +31,11 @@
 .chart-tooltip .tt-tags {
   margin-top: 4px;
   color: var(--mint);
+}
+
+/* 휴대폰에서는 차트를 조금 낮게 (한 화면에 차트와 그날 정보가 같이 보이게) */
+@media (max-width: 560px) {
+  .chart {
+    height: 340px;
+  }
 }

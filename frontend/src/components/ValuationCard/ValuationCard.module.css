@@ -2,7 +2,7 @@
 .muted,
 .formula {
   margin: 0 0 8px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--sub);
 }
 
@@ -30,31 +30,31 @@
 }
 
 .mine {
-  font-size: 18px;
+  font-size: var(--fs-xl);
   font-weight: 700;
 }
 
 .vs {
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: var(--sub);
 }
 
 .gap {
   margin-left: auto;
   padding: 1px 9px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   font-weight: 600;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   border: 1px solid;
 }
 
 /* 낮다·높다에 좋고 나쁨의 뜻을 싣지 않으려고 빨강·파랑(등락 색) 대신 중립 색을 쓴다 */
 .low {
-  color: #9ec5ff;
+  color: var(--key);
 }
 
 .high {
-  color: #ffc861;
+  color: var(--warn);
 }
 
 .same {
@@ -63,9 +63,9 @@
 
 .comment {
   margin: 4px 0 0;
-  font-size: 13px;
+  font-size: var(--fs-md);
   line-height: 1.55;
-  color: #d6d8e0;
+  color: var(--text-2);
 }
 
 .formula {
@@ -74,14 +74,14 @@
 
 .note {
   margin: 10px 0 0;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   line-height: 1.55;
   color: var(--sub);
 }
 
 .peers {
   margin-top: 10px;
-  font-size: 13px;
+  font-size: var(--fs-md);
 }
 
 .peers summary {
@@ -118,14 +118,14 @@
   padding: 8px 10px;
   border-left: 3px solid var(--mint);
   background: rgba(79, 231, 176, 0.07);
-  border-radius: 4px;
-  font-size: 13px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-md);
 }
 
 .focus p {
   margin: 4px 0 0;
   line-height: 1.55;
-  color: #d6d8e0;
+  color: var(--text-2);
 }
 
 .star {
@@ -138,17 +138,17 @@
   margin-top: 8px;
   font-weight: 600;
   color: var(--sub);
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 
 .focus ul {
   margin: 2px 0 0;
   padding-left: 18px;
   line-height: 1.55;
-  color: #d6d8e0;
+  color: var(--text-2);
 }
 
 .focus .caution {
   margin-top: 8px;
-  color: #ffc861;
+  color: var(--warn);
 }

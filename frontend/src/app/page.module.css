@@ -28,7 +28,7 @@
 }
 
 .title-mini {
-  font-size: 17px;
+  font-size: var(--fs-lg);
   font-style: normal;
   font-weight: bold;
 }
@@ -38,17 +38,17 @@
   font-weight: 700;
 }
 .title-main {
-  color: #1DE9B6;
+  color: var(--mint);
   font-size: 70px;
   font-weight: 700;
 }
 
 .title span {
-  color: #1DE9B6;
+  color: var(--mint);
 }
 
 .description {
-  font-size: 15px;
+  font-size: var(--fs-lg);
   font-style: normal;
   font-weight: 500;
 
@@ -113,7 +113,7 @@
 
 .line {
   fill: none;
-  stroke: #4FE7B0;
+  stroke: var(--mint);
   stroke-width: 7;
 }
 .head-description {
@@ -129,7 +129,7 @@
   justify-content: center;
   align-items: center;
 
-  font-size: 15px;
+  font-size: var(--fs-lg);
   font-weight: 500;
 
   background-color: transparent;

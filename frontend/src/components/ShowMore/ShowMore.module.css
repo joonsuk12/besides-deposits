@@ -4,10 +4,10 @@
   margin-top: 8px;
   padding: 6px 0;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   background: none;
   color: var(--mint);
-  font-size: 13px;
+  font-size: var(--fs-md);
   cursor: pointer;
 }
 
