@@ -12,7 +12,11 @@ export default function SiteNote() {
         투자 판단과 책임은 본인에게 있습니다.
       </p>
       <p>
-        데이터 출처: 주가 KRX(pykrx·FinanceDataReader) · 공시 금융감독원 OpenDART · 뉴스·증권사 리포트·기업 지표 네이버 증권.
+        데이터 출처: 주가 KRX(pykrx·FinanceDataReader) · 공시 금융감독원 OpenDART · 뉴스·증권사 리포트·기업 지표 네이버 증권 · 차트{" "}
+        <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">
+          TradingView Lightweight Charts
+        </a>
+        .
         원문은 각 출처에서 확인하세요. · <Link href="/guide">도움말</Link> · <Link href="/intro">서비스 소개</Link>
       </p>
     </footer>

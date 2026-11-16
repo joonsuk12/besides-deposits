@@ -10,6 +10,7 @@ import styles from "./guide.module.css";
 const TOC = [
   { id: "what", title: "이 서비스로 할 수 있는 것" },
   { id: "chart", title: "차트 읽는 법" },
+  { id: "indicators", title: "보조지표 읽는 법" },
   { id: "news", title: "뉴스 보는 법" },
   { id: "report", title: "증권사 리포트 보는 법" },
   { id: "disclosure", title: "공시와 꼬리표" },
@@ -78,8 +79,35 @@ export default function GuidePage() {
             </ul>
           </section>
 
+          <section id="indicators">
+            <h2>3. 보조지표 읽는 법</h2>
+            <p>차트 위 &quot;지표&quot; 메뉴에서 켜고 꺼요. 처음에는 이동평균선만 켜져 있어요. 차트 위 값 표시줄에 마우스를 올린 날의 값이 나와요.</p>
+            <ul>
+              <li>
+                <b>이동평균선 (5·20·60·120)</b>: 최근 N개 봉 종가의 평균을 이은 선이에요. 일봉에서는 5일(1주)·20일(1달)·60일(3달)·120일(6달),
+                주봉에서는 5주·20주…처럼 보고 있는 봉 기준이에요. 짧은 선이 긴 선을 뚫고 오르면 &quot;골든크로스&quot;, 내려가면
+                &quot;데드크로스&quot;라고 불러요.
+              </li>
+              <li>
+                <b>볼린저밴드</b>: 20일 평균선 위아래로 평소 움직임 폭만큼 띠를 그려요. 주가는 대부분 띠 안에서 움직이고, 띠 밖으로 나가면
+                평소보다 크게 움직인 거예요. 띠가 좁아지면 곧 크게 움직일 수 있다는 신호로 보기도 해요.
+              </li>
+              <li>
+                <b>RSI</b>: 최근 14개 봉 동안 오른 힘이 얼마나 센지 0~100으로 나타내요. 70 이상은 많이 올라 &quot;과열&quot;, 30 이하는 많이
+                내려 &quot;침체&quot;로 봐요.
+              </li>
+              <li>
+                <b>MACD</b>: 짧은 평균(12)과 긴 평균(26)의 차이(초록 선)와 그 평균인 신호선(분홍 선)이에요. 초록 선이 신호선을 위로 뚫으면
+                오르는 힘이 세지는 신호, 아래로 뚫으면 약해지는 신호로 봐요. 막대는 두 선의 차이예요.
+              </li>
+            </ul>
+            <p className={styles["sub"]}>
+              지표는 지난 가격으로 계산한 참고 자료예요. 신호가 맞지 않을 때도 많으니 하나만 보고 판단하지 마세요.
+            </p>
+          </section>
+
           <section id="news">
-            <h2>3. 뉴스 보는 법</h2>
+            <h2>4. 뉴스 보는 법</h2>
             <ul>
               <li>
                 <b>기사 N건</b>: 같은 내용을 다룬 기사 수예요. 여러 언론사가 함께 다룰수록 중요한 소식일 가능성이 커요.
@@ -92,7 +120,7 @@ export default function GuidePage() {
           </section>
 
           <section id="report">
-            <h2>4. 증권사 리포트 보는 법</h2>
+            <h2>5. 증권사 리포트 보는 법</h2>
             <ul>
               <li>
                 <b>🧒 쉽게 말하면</b>: 리포트를 초보 말투로 다시 쓴 한 줄이에요. &quot;자세히&quot;를 누르면 풀어 쓴 설명과 주의할
@@ -113,7 +141,7 @@ export default function GuidePage() {
           </section>
 
           <section id="disclosure">
-            <h2>5. 공시와 꼬리표</h2>
+            <h2>6. 공시와 꼬리표</h2>
             <p>공시는 회사가 법에 따라 알려야 하는 중요한 일이에요. 공시 제목을 보고 아래 꼬리표를 붙여요.</p>
             <ul>
               <li>
@@ -136,7 +164,7 @@ export default function GuidePage() {
           </section>
 
           <section id="valuation">
-            <h2>6. PER·PBR 쉽게</h2>
+            <h2>7. PER·PBR 쉽게</h2>
             <ul>
               <li>
                 <b>PER</b> = 주가 ÷ 1주당 1년 이익. &quot;회사가 1년에 버는 돈의 몇 배에 주가가 매겨졌나&quot;예요. 적자면
@@ -160,9 +188,10 @@ export default function GuidePage() {
           </section>
 
           <section id="data">
-            <h2>7. 데이터는 언제 어디서 오나</h2>
+            <h2>8. 데이터는 언제 어디서 오나</h2>
             <ul>
-              <li>주가: KRX 데이터(pykrx·FinanceDataReader). 평일 장 마감 뒤 하루 한 번 받아요.</li>
+              <li>주가: KRX 데이터(pykrx·FinanceDataReader). 최근 10년치를 저장하고, 평일 장 마감 뒤 하루 한 번 받아요.</li>
+              <li>차트: TradingView Lightweight Charts (Apache-2.0 무료 라이브러리). 보조지표는 우리가 직접 계산해요.</li>
               <li>공시: 금융감독원 OpenDART. 6시간마다 새로 확인해요.</li>
               <li>뉴스·증권사 리포트·기업 지표: 네이버 증권. 화면을 열 때와 매일 저녁 정해진 시간에 받아요.</li>
               <li>리포트의 &quot;쉽게 말하면&quot; 요약은 평일 저녁에 Claude가 써서 저장해요. 아직 요약이 없는 리포트도 있어요.</li>
