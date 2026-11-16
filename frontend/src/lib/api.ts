@@ -123,6 +123,7 @@ export type YearValuation = {
   operating_profit: number | null; // 억원
   roe: number | null;
   dividend: number | null;
+  source: "naver" | "dart"; // dart: 공시 사업보고서로 계산한 근사치
 };
 
 export type Overview = {

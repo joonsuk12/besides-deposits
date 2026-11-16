@@ -47,6 +47,7 @@ class YearValuation(BaseModel):
     operating_profit: float | None  # 영업이익 (억원)
     roe: float | None  # %
     dividend: float | None  # 주당배당금 (원)
+    source: str = "naver"  # naver: 네이버(지배주주 기준·예상치 포함) / dart: 공시 사업보고서로 직접 계산한 근사치
 
 
 class OverviewResponse(BaseModel):

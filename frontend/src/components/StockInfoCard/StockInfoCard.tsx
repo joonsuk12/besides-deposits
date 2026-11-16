@@ -31,6 +31,7 @@ function Bars({ title, hint, years, pick }: { title: string; hint: string; years
   const H = 110;
   const slot = W / years.length;
   const barW = Math.min(44, slot * 0.55);
+  const many = years.length > 6; // 해가 많으면 글자를 줄여 겹치지 않게
 
   return (
     <figure className={styles["chart"]}>
@@ -52,15 +53,15 @@ function Bars({ title, hint, years, pick }: { title: string; hint: string; years
                   width={barW}
                   height={h}
                   rx="3"
-                  className={y.is_estimate ? styles["bar-est"] : styles["bar"]}
+                  className={y.is_estimate ? styles["bar-est"] : y.source === "dart" ? styles["bar-dart"] : styles["bar"]}
                 />
               )}
               <text x={cx} y={H + 8 - h} textAnchor="middle" className={styles["val"]}>
-                {v === null ? "적자" : `${num(v, 1)}배`}
+                {v === null ? "적자" : many ? num(v, 1) : `${num(v, 1)}배`}
               </text>
               <text x={cx} y={H + 29} textAnchor="middle" className={styles["year"]}>
-                {y.label.slice(0, 4)}
-                {y.is_estimate ? " 예상" : ""}
+                {many ? `'${y.label.slice(2, 4)}` : y.label.slice(0, 4)}
+                {y.is_estimate ? (many ? "e" : " 예상") : ""}
               </text>
             </g>
           );
@@ -81,7 +82,7 @@ function Trend({ o }: { o: Overview }) {
         <thead>
           <tr>
             <th></th>
-            {o.years.map((y) => (
+            {o.years.slice(-4).map((y) => (
               <th key={y.label}>
                 {y.label.slice(0, 4)}
                 {y.is_estimate ? " 예상" : ""}
@@ -92,32 +93,34 @@ function Trend({ o }: { o: Overview }) {
         <tbody>
           <tr>
             <td>매출</td>
-            {o.years.map((y) => (
+            {o.years.slice(-4).map((y) => (
               <td key={y.label}>{eok(y.revenue)}</td>
             ))}
           </tr>
           <tr>
             <td>영업이익</td>
-            {o.years.map((y) => (
+            {o.years.slice(-4).map((y) => (
               <td key={y.label}>{eok(y.operating_profit)}</td>
             ))}
           </tr>
           <tr>
             <td title="자기자본으로 1년에 버는 비율">ROE</td>
-            {o.years.map((y) => (
+            {o.years.slice(-4).map((y) => (
               <td key={y.label}>{y.roe === null ? "-" : `${num(y.roe, 1)}%`}</td>
             ))}
           </tr>
           <tr>
             <td>주당 배당금</td>
-            {o.years.map((y) => (
+            {o.years.slice(-4).map((y) => (
               <td key={y.label}>{y.dividend === null ? "-" : `${num(y.dividend)}원`}</td>
             ))}
           </tr>
         </tbody>
       </table>
       <p className={styles["note"]}>
-        연도별 PER·PBR은 그해 말 주가 기준이에요. 흐린 점선 막대는 증권사들의 예상치라 실제와 다를 수 있어요.
+        표는 최근 4개 해만 보여줘요. 연도별 PER·PBR은 그해 말 주가 기준이에요.
+        {o.years.some((y) => y.source === "dart") &&
+          " 옅은 막대(네이버가 주지 않는 오래된 해)는 공시 사업보고서 숫자로 직접 계산한 근사치예요(최근 주식 수 기준, 비지배주주 몫 포함)."} 흐린 점선 막대는 증권사들의 예상치라 실제와 다를 수 있어요.
         &quot;주가 수준&quot; 탭의 숫자는 최근 1년 실적과 최근 종가 기준이라 조금 달라요.
       </p>
     </div>

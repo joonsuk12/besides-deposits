@@ -37,3 +37,16 @@ class CompanyOverview(Base):
     summary: Mapped[str] = mapped_column(Text, default="")  # 회사 소개 문장들 (줄바꿈 구분)
     annual_json: Mapped[str] = mapped_column(Text, default="[]")  # 연도별 숫자 (JSON 문자열)
     fetched_at: Mapped[datetime]
+
+
+class AnnualFinancial(Base):
+    """OpenDART 사업보고서의 연간 주요계정 (원 단위). 지난 해 숫자는 바뀌지 않아 한 번 받으면 계속 쓴다."""
+
+    __tablename__ = "annual_financial"
+
+    stock_code: Mapped[str] = mapped_column(primary_key=True)
+    year: Mapped[int] = mapped_column(primary_key=True)
+    revenue: Mapped[float | None]
+    operating_profit: Mapped[float | None]
+    net_income: Mapped[float | None]  # 당기순이익 (비지배주주 몫 포함)
+    equity: Mapped[float | None]  # 자본총계
