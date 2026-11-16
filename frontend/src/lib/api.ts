@@ -145,7 +145,31 @@ export type Trend = {
 };
 export const fetchTrend = (code: string, days = 180) => request<Trend>(`/trend/stock/${code}?days=${days}`);
 
-export const fetchOverview =(code: string) => request<Overview>(`/valuation/stock/${code}/overview`);
+export type EtfWeight = { name: string; weight: number; code: string | null };
+export type Etf = {
+  available: boolean;
+  message: string | null;
+  name: string | null;
+  base_index: string | null;
+  issuer: string | null;
+  listed_date: string | null;
+  summary: string | null;
+  total_fee: number | null;
+  deviation_rate: number | null;
+  tracking_error: number | null;
+  total_nav: string | null;
+  returns: { label: string; value: number | string | null }[];
+  holdings: EtfWeight[];
+  assets: EtfWeight[];
+  sectors: EtfWeight[];
+  dividend_yield: number | null;
+  dividend_months: string | null;
+  inflows: { label: string; value: string | null }[];
+  notes: string[];
+};
+export const fetchEtf = (code: string) => request<Etf>(`/etf/${code}`);
+
+export const fetchOverview = (code: string) => request<Overview>(`/valuation/stock/${code}/overview`);
 export const fetchValuation =(code: string) => request<Valuation>(`/valuation/stock/${code}`);
 
 // 종목 로고 (NewStocks와 같은 출처). 없는 종목은 회색 원으로 보인다.

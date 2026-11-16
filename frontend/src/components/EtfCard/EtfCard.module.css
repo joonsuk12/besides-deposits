@@ -1,0 +1,160 @@
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin: 12px 0 12px;
+  padding: 3px;
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+}
+
+.tabs button {
+  flex: 1;
+  padding: 6px 4px;
+  font-size: var(--fs-md);
+  color: var(--sub);
+  background: none;
+  border: 0;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tabs button.on {
+  color: var(--bg);
+  background: var(--mint);
+  font-weight: 700;
+}
+
+.muted,
+.compact {
+  margin: 8px 0 0;
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+  color: var(--sub);
+}
+
+.compact {
+  margin: 0;
+  font-size: var(--fs-md);
+  color: var(--text-2);
+}
+
+.lead {
+  margin: 0 0 10px;
+  font-size: var(--fs-md);
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+.lead b {
+  color: var(--mint);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
+.facts div {
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+}
+
+.facts dt {
+  font-size: var(--fs-sm);
+  color: var(--sub);
+  cursor: help;
+}
+
+.facts dd {
+  margin: 2px 0 0;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.notes {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+.returns {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.returns th,
+.returns td {
+  padding: 4px 2px;
+  text-align: center;
+  border-bottom: 1px solid var(--line);
+}
+
+.returns th {
+  font-weight: 400;
+  color: var(--sub);
+}
+
+.sub-h {
+  margin: 12px 0 6px;
+  font-size: var(--fs-md);
+}
+
+.bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bars li {
+  display: grid;
+  grid-template-columns: minmax(0, 120px) minmax(0, 1fr) 56px;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: var(--fs-sm);
+}
+
+.bar-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bar-name a {
+  color: var(--text);
+}
+
+.bar-name a:hover {
+  color: var(--mint);
+  text-decoration: underline;
+}
+
+.bar-track {
+  height: 8px;
+  background: var(--surface-2);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--mint);
+  border-radius: var(--r-pill);
+}
+
+.bar-val {
+  text-align: right;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

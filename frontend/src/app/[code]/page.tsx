@@ -16,6 +16,7 @@ import ShowMore from "@/components/ShowMore/ShowMore";
 import ToneFilter, { type Tone } from "@/components/ToneFilter/ToneFilter";
 import StockChart, { type DayMarks } from "@/components/StockChart";
 import StockProfile from "@/components/StockProfile/StockProfile";
+import EtfCard from "@/components/EtfCard/EtfCard";
 import StockInfoCard from "@/components/StockInfoCard/StockInfoCard";
 import TrendCard from "@/components/TrendCard/TrendCard";
 import WatchlistSidebar from "@/components/WatchlistSidebar/WatchlistSidebar";
@@ -66,6 +67,7 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
   const { code } = use(params);
 
   const [stock, setStock] = useState<Stock | null>(null);
+  const isEtf = stock?.market === "ETF";
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [days, setDays] = useState(365);
   const [prices, setPrices] = useState<Price[]>([]);
@@ -77,7 +79,9 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
   const [error, setError] = useState<string | null>(null);
 
   const loadWatchlist = useCallback(() => {
-    fetchWatchlist().then(setWatchlist).catch(() => {});
+    fetchWatchlist()
+      .then(setWatchlist)
+      .catch(() => {});
   }, []);
 
   useEffect(loadWatchlist, [loadWatchlist]);
@@ -90,9 +94,15 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
     fetchStock(code)
       .then(setStock)
       .catch(() => setError("종목을 찾을 수 없거나 백엔드(8100번 포트)가 꺼져 있습니다."));
-    fetchStockNews(code, 365).then(setNews).catch(() => {});
-    fetchStockReports(code, 20).then(setReports).catch(() => {});
-    fetchStockDisclosures(code, 365).then(setDisclosures).catch(() => {});
+    fetchStockNews(code, 365)
+      .then(setNews)
+      .catch(() => {});
+    fetchStockReports(code, 20)
+      .then(setReports)
+      .catch(() => {});
+    fetchStockDisclosures(code, 365)
+      .then(setDisclosures)
+      .catch(() => {});
   }, [code]);
 
   useEffect(() => {
@@ -180,10 +190,7 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
   const dayNews = selectedDate
     ? [...(byDay.newsByDay.get(selectedDate) ?? [])].sort((a, b) => b.published_at.localeCompare(a.published_at))
     : [];
-  const latestReports = useMemo(
-    () => [...reports].sort((a, b) => b.write_date.localeCompare(a.write_date)),
-    [reports],
-  );
+  const latestReports = useMemo(() => [...reports].sort((a, b) => b.write_date.localeCompare(a.write_date)), [reports]);
   const dayReports = selectedDate ? (byDay.reportsByDay.get(selectedDate) ?? []) : [];
   const dayDisclosures = selectedDate ? (byDay.disclosuresByDay.get(selectedDate) ?? []) : [];
 
@@ -236,9 +243,9 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
           )}
         </div>
         <p className={styles["hint"]}>
-          <b className={styles["mark-n"]}>N</b> 뉴스가 있는 날 · <b className={styles["mark-r"]}>R</b> 증권사 리포트가 나온 날 ·{" "}
-          <b className={styles["mark-d"]}>D</b> 중요 공시가 나온 날 —
-          차트에서 날짜를 누르면 그날의 내용이 바로 아래에 나옵니다.
+          <b className={styles["mark-n"]}>N</b> 뉴스가 있는 날 · <b className={styles["mark-r"]}>R</b> 증권사 리포트가
+          나온 날 · <b className={styles["mark-d"]}>D</b> 중요 공시가 나온 날 — 차트에서 날짜를 누르면 그날의 내용이
+          바로 아래에 나옵니다.
         </p>
 
         {/* 선택한 날: 차트 바로 아래. 가격은 한 줄 띠로, 그날 내용은 두 칸(왼쪽 뉴스 / 오른쪽 공시·리포트) */}
@@ -273,12 +280,19 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
                   toneOf={newsTone}
                   labels={{ good: "좋은 소식(추정)", bad: "나쁜 소식(추정)" }}
                 >
-                  {(shown) => <NewsList items={shown} empty="이날 수집된 뉴스가 없습니다. (최근 뉴스 위주로 모읍니다)" />}
+                  {(shown) => (
+                    <NewsList items={shown} empty="이날 수집된 뉴스가 없습니다. (최근 뉴스 위주로 모읍니다)" />
+                  )}
                 </ToneFilter>
               </div>
               <div>
                 <h3>📢 이날의 공시</h3>
-                <DisclosureList key={`disc-${selectedDate}`} items={dayDisclosures} limit={3} empty="이날 나온 공시가 없습니다." />
+                <DisclosureList
+                  key={`disc-${selectedDate}`}
+                  items={dayDisclosures}
+                  limit={3}
+                  empty="이날 나온 공시가 없습니다."
+                />
                 <h3 className={styles["day-sub-h"]}>📄 이날 나온 리포트</h3>
                 {dayReports.length === 0 && <p className={styles["placeholder"]}>이날 나온 리포트가 없습니다.</p>}
                 <ShowMore key={`report-${selectedDate}`} items={dayReports} limit={3}>
@@ -304,8 +318,16 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
 
       {/* 오른쪽: 날짜와 상관없는 이 종목 요약 */}
       <aside className={styles["side-container"]}>
+        {/* ETF는 회사가 아니라 PER·PBR·공시·리포트 대신 ETF 정보(따라가는 지수·보수·담긴 종목)를 보여준다 */}
         <section className={styles["card"]}>
-          <StockInfoCard code={code} />
+          {isEtf ? (
+            <>
+              <h2>🧺 ETF 정보</h2>
+              <EtfCard code={code} />
+            </>
+          ) : (
+            <StockInfoCard code={code} />
+          )}
         </section>
 
         <section className={styles["card"]}>
@@ -313,39 +335,45 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
           <TrendCard code={code} />
         </section>
 
-        <section className={styles["card"]}>
-          <h2>📢 최근 공시</h2>
-          {!disclosures && <p className={styles["placeholder"]}>불러오는 중…</p>}
-          {disclosures && !disclosures.available && <p className={styles["placeholder"]}>{disclosures.message}</p>}
-          {disclosures?.available && (
-            <DisclosureList
-              key={code}
-              items={disclosures.items}
-              limit={3}
-              skipInfo
-              empty="최근 1년 동안 공시가 없습니다. ETF는 회사 공시가 없어요."
-            />
-          )}
-        </section>
-
-        <section className={styles["card"]}>
-          <h2>증권사 리포트</h2>
-          {reports.length === 0 && <p className={styles["placeholder"]}>최근 나온 리포트가 없습니다. ETF나 소형주는 리포트가 드뭅니다.</p>}
-          <ToneFilter
-            key={code}
-            items={latestReports}
-            toneOf={reportTone}
-            labels={{ good: "▲ 목표가 상향", bad: "▼ 목표가 하향" }}
-          >
-            {(shown) => (
-              <div className={styles["stack"]}>
-                {shown.map((r) => (
-                  <ReportCard key={r.nid} report={r} compact showStock={false} />
-                ))}
-              </div>
+        {!isEtf && (
+          <section className={styles["card"]}>
+            <h2>📢 최근 공시</h2>
+            {!disclosures && <p className={styles["placeholder"]}>불러오는 중…</p>}
+            {disclosures && !disclosures.available && <p className={styles["placeholder"]}>{disclosures.message}</p>}
+            {disclosures?.available && (
+              <DisclosureList
+                key={code}
+                items={disclosures.items}
+                limit={3}
+                skipInfo
+                empty="최근 1년 동안 공시가 없습니다. ETF는 회사 공시가 없어요."
+              />
             )}
-          </ToneFilter>
-        </section>
+          </section>
+        )}
+
+        {!isEtf && (
+          <section className={styles["card"]}>
+            <h2>증권사 리포트</h2>
+            {reports.length === 0 && (
+              <p className={styles["placeholder"]}>최근 나온 리포트가 없습니다. ETF나 소형주는 리포트가 드뭅니다.</p>
+            )}
+            <ToneFilter
+              key={code}
+              items={latestReports}
+              toneOf={reportTone}
+              labels={{ good: "▲ 목표가 상향", bad: "▼ 목표가 하향" }}
+            >
+              {(shown) => (
+                <div className={styles["stack"]}>
+                  {shown.map((r) => (
+                    <ReportCard key={r.nid} report={r} compact showStock={false} />
+                  ))}
+                </div>
+              )}
+            </ToneFilter>
+          </section>
+        )}
 
         <section className={`${styles["card"]} ${styles["guide"]}`}>
           <h2>캔들 읽는 법</h2>
