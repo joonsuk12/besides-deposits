@@ -8,12 +8,13 @@ from datetime import date, timedelta
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from app.core import fetch_log
 from app.stock import collector, repository
 from app.stock.models import DailyPrice, Stock
 from app.stock.schemas import CollectResult, WatchlistItem
 
-# 처음 수집할 때 가져올 기간
-INITIAL_YEARS = 3
+# 처음 수집할 때 가져올 기간. 차트를 줌 아웃하면 주봉·월봉·연봉으로 바뀌어서 긴 기간이 필요하다 (2026-11-16, 3년 → 10년)
+INITIAL_YEARS = 10
 
 
 def init_stock_data(db: Session) -> None:
@@ -101,7 +102,7 @@ def _collect_prices(db: Session, stock: Stock, force: bool = False) -> int:
     """
     today = date.today()
     if stock.prices_checked_on == today and not force:
-        return 0
+        return _backfill_prices(db, stock)  # 오늘 확인했어도 과거 채우기는 아직일 수 있다
 
     latest = repository.find_latest_price_date(db, stock.code)
     start = latest + timedelta(days=1) if latest else today - timedelta(days=365 * INITIAL_YEARS)
@@ -121,4 +122,33 @@ def _collect_prices(db: Session, stock: Stock, force: bool = False) -> int:
     repository.save_prices(db, prices)
     stock.prices_checked_on = today
     db.commit()  # 종목 하나가 끝날 때마다 확정 (@Transactional의 커밋 시점)
-    return len(prices)
+    return len(prices) + _backfill_prices(db, stock)
+
+
+def _backfill_prices(db: Session, stock: Stock) -> int:
+    """예전에 3년치만 받아 둔 종목은 10년치가 되도록 앞쪽을 한 번만 채운다.
+
+    상장한 지 10년이 안 된 종목은 앞쪽 데이터가 원래 없으므로, 한 번 시도한 뒤에는 fetch_log로 다시 부르지 않는다.
+    """
+    key = f"prices-backfill:{stock.code}"
+    if fetch_log.is_fresh(db, key, minutes=60 * 24 * 365 * 100):  # 한 번 하면 끝
+        return 0
+    earliest = repository.find_earliest_price_date(db, stock.code)
+    target = date.today() - timedelta(days=365 * INITIAL_YEARS)
+    saved = 0
+    if earliest and earliest > target + timedelta(days=30):
+        try:
+            rows = collector.fetch_daily_prices(stock.code, target, earliest - timedelta(days=1))
+        except Exception as e:
+            print(f"  과거 주가 수집 실패({stock.code}): {e!r}")
+            return 0
+        prices = [
+            DailyPrice(stock_code=stock.code, date=r.date, open=r.open, high=r.high, low=r.low, close=r.close, volume=r.volume)
+            for r in rows
+            if r.open > 0 and r.date < earliest
+        ]
+        repository.save_prices(db, prices)
+        saved = len(prices)
+    fetch_log.mark_fetched(db, key)
+    db.commit()
+    return saved

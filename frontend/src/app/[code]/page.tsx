@@ -36,10 +36,13 @@ import {
 } from "@/lib/api";
 import styles from "./stock.module.css";
 
+// 기간 버튼은 데이터를 다시 받지 않고 차트에서 보이는 범위만 바꾼다 (주가는 10년치를 한 번에 받는다)
+const PRICE_DAYS = 3650;
 const PERIODS = [
   { label: "3개월", days: 92 },
   { label: "1년", days: 365 },
   { label: "3년", days: 1095 },
+  { label: "10년", days: 3650 },
 ];
 
 const won = (n: number) => n.toLocaleString("ko-KR");
@@ -94,7 +97,7 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetchPrices(code, days)
+    fetchPrices(code, PRICE_DAYS)
       .then((list) => {
         if (cancelled) return;
         setPrices(list);
@@ -105,7 +108,7 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
     return () => {
       cancelled = true;
     };
-  }, [code, days]);
+  }, [code]);
 
   // 뉴스·리포트를 거래일 기준으로 묶는다
   const byDay = useMemo(() => {
@@ -228,7 +231,7 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
             <p className={styles["notice"]}>이 종목의 주가 데이터를 가져오지 못했습니다.</p>
           )}
           {!loading && prices.length > 0 && (
-            <StockChart prices={prices} marks={marks} onSelectDate={setSelectedDate} />
+            <StockChart prices={prices} marks={marks} rangeDays={days} onSelectDate={setSelectedDate} />
           )}
         </div>
         <p className={styles["hint"]}>

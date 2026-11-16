@@ -60,6 +60,10 @@ def find_recent_prices(db: Session, code: str, limit: int) -> list[DailyPrice]:
     )
 
 
+def find_earliest_price_date(db: Session, code: str) -> date | None:
+    return db.scalar(select(func.min(DailyPrice.date)).where(DailyPrice.stock_code == code))
+
+
 def find_latest_price_date(db: Session, code: str) -> date | None:
     return db.scalar(select(func.max(DailyPrice.date)).where(DailyPrice.stock_code == code))
 
