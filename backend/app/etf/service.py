@@ -96,7 +96,7 @@ def _to_response(d: dict) -> EtfResponse:
             for r in d.get("returnPerformanceList") or []
             if r.get("periodTypeCode") in PERIODS
         ],
-        holdings=holdings,
+        holdings=_fill_single_weight(holdings, _weights(d.get("assetPortfolioList"), ASSET_NAMES)),
         assets=_weights(d.get("assetPortfolioList"), ASSET_NAMES),
         sectors=sectors,
         dividend_yield=dividend.get("dividendYieldTtm") or None,
@@ -105,6 +105,18 @@ def _to_response(d: dict) -> EtfResponse:
     )
     res.notes = _notes(res)
     return res
+
+
+def _fill_single_weight(holdings: list[Weight], assets: list[Weight]) -> list[Weight]:
+    """금 ETF처럼 실제 자산이 하나뿐인데 네이버가 비중을 "-"로 줄 때, 현금을 뺀 자산 비중으로 채운다.
+
+    예: ACE KRX금현물 — 담긴 것 "금 현물 99.99_1Kg" 비중 "-", 자산 구성 "기타(원자재 등) 99.94%" → 금 현물 99.94%
+    """
+    if len(holdings) == 1 and holdings[0].weight == 0:
+        non_cash = [a for a in assets if a.name != "현금"]
+        if non_cash:
+            holdings[0].weight = non_cash[0].weight
+    return holdings
 
 
 def _first_sentences(text: str | None, n: int = 2) -> str | None:

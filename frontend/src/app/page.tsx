@@ -95,7 +95,7 @@ export default function HomePage() {
       if (!r) continue;
       for (const d of r.disclosures)
         out.push({
-          key: `d${d.rcept_no}`,
+          key: `d${s.code}-${d.rcept_no}`, // 같은 기사·공시가 여러 관심종목에 걸릴 수 있어 종목코드를 붙인다
           date: d.date,
           stock: s.name,
           code: s.code,
@@ -107,7 +107,7 @@ export default function HomePage() {
         });
       for (const rep of r.reports)
         out.push({
-          key: `r${rep.nid}`,
+          key: `r${s.code}-${rep.nid}`,
           date: rep.write_date,
           stock: s.name,
           code: s.code,
@@ -124,7 +124,7 @@ export default function HomePage() {
         .slice(0, NEWS_PER_STOCK);
       for (const n of topNews)
         out.push({
-          key: `n${n.id}`,
+          key: `n${s.code}-${n.id}`,
           date: n.date,
           stock: s.name,
           code: s.code,
