@@ -6,6 +6,7 @@ class Weight(BaseModel):
     name: str
     weight: float  # %
     code: str | None = None  # 담긴 종목이 상장 주식이면 종목코드 (눌러서 그 종목 차트로)
+    quantity: str | None = None  # 보유 수량 (설정 단위 1개당, 네이버가 주는 그대로)
 
 
 class LabeledValue(BaseModel):
@@ -26,7 +27,8 @@ class EtfResponse(BaseModel):
     tracking_error: float | None = None  # 추적오차 %
     total_nav: str | None = None  # 순자산 규모
     returns: list[LabeledValue] = []  # 기간 수익률 %
-    holdings: list[Weight] = []  # 담긴 종목 TOP10
+    holdings: list[Weight] = []  # 담긴 종목 TOP10 (많이 담은 순서)
+    holdings_weight_known: bool = True  # False면 비중을 알 수 없어 순서·수량만 보여준다 (액티브·해외 ETF 등)
     assets: list[Weight] = []  # 자산 종류 비중 (주식·채권·현금·기타)
     sectors: list[Weight] = []  # 업종 비중
     dividend_yield: float | None = None  # 분배금 수익률 %/년

@@ -145,7 +145,7 @@ export type Trend = {
 };
 export const fetchTrend = (code: string, days = 180) => request<Trend>(`/trend/stock/${code}?days=${days}`);
 
-export type EtfWeight = { name: string; weight: number; code: string | null };
+export type EtfWeight = { name: string; weight: number; code: string | null; quantity?: string | null };
 export type Etf = {
   available: boolean;
   message: string | null;
@@ -160,6 +160,7 @@ export type Etf = {
   total_nav: string | null;
   returns: { label: string; value: number | string | null }[];
   holdings: EtfWeight[];
+  holdings_weight_known: boolean;
   assets: EtfWeight[];
   sectors: EtfWeight[];
   dividend_yield: number | null;

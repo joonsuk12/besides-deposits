@@ -28,7 +28,7 @@ function Bars({ items, linkable = false }: { items: EtfWeight[]; linkable?: bool
   const max = Math.max(...items.map((i) => i.weight), 1);
   return (
     <ul className={styles["bars"]}>
-      {items.map((i) => (
+      {items.map((i, idx) => (
         <li key={i.name}>
           <span className={styles["bar-name"]}>
             {linkable && i.code ? <Link href={`/${i.code}`}>{i.name}</Link> : i.name}
@@ -41,7 +41,11 @@ function Bars({ items, linkable = false }: { items: EtfWeight[]; linkable?: bool
               <span className={styles["bar-val"]}>{pct(i.weight, false)}</span>
             </>
           ) : (
-            <span className={styles["bar-val"]}>비중 정보 없음</span>
+            // 비중을 모를 때: 많이 담은 순서(순위)와 보유 수량
+            <>
+              <span className={styles["rank"]}>{idx + 1}위</span>
+              <span className={styles["bar-val"]}>{i.quantity ? `${i.quantity}주` : "-"}</span>
+            </>
           )}
         </li>
       ))}
@@ -149,6 +153,12 @@ export default function EtfCard({ code, compact = false }: { code: string; compa
             <>
               <h4 className={styles["sub-h"]}>많이 담은 것 TOP {e.holdings.length}</h4>
               <Bars items={e.holdings} linkable />
+              {!e.holdings_weight_known && (
+                <p className={styles["muted"]}>
+                  이 ETF는 운용사가 종목별 비중을 네이버에 공개하지 않아, 많이 담은 순서와 보유 수량(설정 단위 1개당)만 보여줘요. 정확한 비중은
+                  운용사 홈페이지의 &quot;구성 종목(PDF)&quot;에서 볼 수 있어요.
+                </p>
+              )}
             </>
           )}
           {e.assets.length > 0 && (
