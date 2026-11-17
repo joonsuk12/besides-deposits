@@ -17,7 +17,7 @@ from app.core import fetch_log
 from app.stock import repository as stock_repository
 from app.valuation import client, dart_client, focus, repository
 from app.valuation.friendly import friendly
-from app.valuation.models import AnnualFinancial, CompanyOverview, Fundamental
+from app.valuation.models import AnnualFinancial, AnnualShares, CompanyOverview, Fundamental
 from app.valuation.schemas import OverviewResponse, PeerValuation, ValuationResponse, YearValuation
 
 REFRESH_MIN = 720  # 재무 숫자는 분기마다 바뀌므로 반나절에 한 번이면 충분하다
@@ -241,11 +241,11 @@ DART_REFRESH_MIN = 60 * 24 * 7  # 새 사업보고서는 1년에 한 번 나오�
 
 
 def _dart_years(db: Session, code: str) -> list[YearValuation]:
-    """OpenDART 사업보고서로 지난 10년 PER·PBR 근사치를 만든다.
+    """OpenDART 사업보고서로 지난 10년 PER·PBR을 만든다.
 
-    - 그해 마지막 거래일 종가 ÷ (당기순이익 ÷ 주식 수) = PER,  종가 ÷ (자본총계 ÷ 주식 수) = PBR
-    - 주가는 액면분할을 반영한 값이라, 주식 수도 가장 최근 해 것을 모든 해에 쓴다 (예: 삼성전자 2018년 50:1 분할).
-      그래서 그 사이 자사주 소각·증자만큼은 오차가 있다 → 화면에 "근사치"로 표시
+    - 그해 마지막 거래일 종가 ÷ (당기순이익 ÷ 그해 주식 수) = PER,  종가 ÷ (자본총계 ÷ 그해 주식 수) = PBR
+    - 해마다 그해 말 주식 수를 쓰므로 자사주 소각·증자도 반영된다 (2026-11-17, 예전엔 최근 주식 수 하나로 계산)
+    - 주가는 액면분할을 반영한 값이라, 분할 전 해의 주식 수는 분할 비율만큼 곱해 같은 기준으로 맞춘다 (_split_adjusted)
     - 당기순이익은 비지배주주 몫이 포함돼 네이버(지배주주 기준) 숫자와 조금 다르다
     """
     from app.disclosure import repository as disclosure_repository  # 종목코드 → DART 회사번호
@@ -280,11 +280,15 @@ def _dart_years(db: Session, code: str) -> list[YearValuation]:
     rows = repository.find_annual(db, code)
     if not rows:
         return []
-    shares = _latest_shares(db, corp.corp_code, rows[-1].year)
-    if not shares:
+    _collect_shares(db, code, corp.corp_code, [a.year for a in rows])
+    shares_by_year = _split_adjusted(repository.find_shares(db, code))
+    if not shares_by_year:
         return []
     out = []
     for a in rows:
+        shares = shares_by_year.get(a.year)
+        if not shares:
+            continue
         close = _year_end_close(stock_repository, db, code, a.year)
         eps = a.net_income / shares if a.net_income is not None else None
         bps = a.equity / shares if a.equity is not None else None
@@ -306,17 +310,49 @@ def _dart_years(db: Session, code: str) -> list[YearValuation]:
     return out
 
 
-_shares_cache: dict[str, int | None] = {}
+def _collect_shares(db: Session, code: str, corp_code: str, years: list[int]) -> None:
+    """아직 없는 해의 주식 수를 받는다. 지난 해 숫자는 바뀌지 않으므로 한 번 받으면 끝."""
+    key = f"dart-shares:{code}"
+    if fetch_log.is_fresh(db, key, DART_REFRESH_MIN):
+        return
+    try:
+        have = repository.find_shares(db, code)
+        for year in years:
+            if year in have:
+                continue
+            n = dart_client.fetch_shares(corp_code, year)
+            if n:
+                repository.save_shares(db, AnnualShares(stock_code=code, year=year, shares=n))
+        fetch_log.mark_fetched(db, key)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"  주식 수 수집 실패({code}): {e!r}")
 
 
-def _latest_shares(db: Session, corp_code: str, year: int) -> int | None:
-    if corp_code not in _shares_cache:
-        try:
-            _shares_cache[corp_code] = dart_client.fetch_shares(corp_code, year)
-        except Exception as e:
-            print(f"  주식 수 수집 실패({corp_code}): {e!r}")
-            return None
-    return _shares_cache[corp_code]
+SPLIT_RATIOS = (2, 4, 5, 10, 20, 25, 50, 100)  # 흔한 액면분할 비율
+
+
+def _split_adjusted(shares: dict[int, int]) -> dict[int, float]:
+    """액면분할 전 해의 주식 수를 지금 기준으로 맞춘다.
+
+    주가 데이터는 분할을 반영해 과거 가격을 낮춰 둔 값이라, 주식 수도 분할 비율만큼 늘려야 1주당 이익이 맞는다.
+    한 해 사이 주식 수가 흔한 분할 비율(2·5·10·50배 등)에 가깝게(±3%) 늘었으면 분할로 본다.
+    예: 삼성전자 2017년 약 1.29억 주 → 2018년 약 64억 주 (50:1 분할) → 2017년 이전은 ×50
+    """
+    years = sorted(shares)
+    out: dict[int, float] = {}
+    factor = 1.0
+    for i in range(len(years) - 1, -1, -1):
+        y = years[i]
+        out[y] = shares[y] * factor
+        if i > 0:
+            prev = years[i - 1]
+            ratio = shares[y] / shares[prev] if shares[prev] else 1
+            split = next((r for r in SPLIT_RATIOS if abs(ratio - r) / r < 0.03), None)
+            if split:
+                factor *= split
+    return out
 
 
 def _year_end_close(stock_repository, db: Session, code: str, year: int) -> int | None:
