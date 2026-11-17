@@ -50,3 +50,13 @@ class AnnualFinancial(Base):
     operating_profit: Mapped[float | None]
     net_income: Mapped[float | None]  # 당기순이익 (비지배주주 몫 포함)
     equity: Mapped[float | None]  # 자본총계
+
+
+class AnnualShares(Base):
+    """그해 말 유통 주식 수 (OpenDART 사업보고서, 보통주+우선주). 연간 PER·PBR을 해마다의 주식 수로 계산하려고 둔다."""
+
+    __tablename__ = "annual_shares"
+
+    stock_code: Mapped[str] = mapped_column(primary_key=True)
+    year: Mapped[int] = mapped_column(primary_key=True)
+    shares: Mapped[int]

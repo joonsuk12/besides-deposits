@@ -2,7 +2,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.valuation.models import AnnualFinancial, CompanyOverview, Fundamental
+from app.valuation.models import AnnualFinancial, AnnualShares, CompanyOverview, Fundamental
 
 
 def find(db: Session, code: str) -> Fundamental | None:
@@ -41,4 +41,12 @@ def find_annual(db: Session, code: str) -> list[AnnualFinancial]:
 
 
 def save_annual(db: Session, row: AnnualFinancial) -> None:
+    db.merge(row)
+
+
+def find_shares(db: Session, code: str) -> dict[int, int]:
+    return {r.year: r.shares for r in db.scalars(select(AnnualShares).where(AnnualShares.stock_code == code))}
+
+
+def save_shares(db: Session, row: AnnualShares) -> None:
     db.merge(row)
