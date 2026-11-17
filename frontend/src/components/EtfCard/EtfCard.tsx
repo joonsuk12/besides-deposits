@@ -62,9 +62,12 @@ export default function EtfCard({ code, compact = false }: { code: string; compa
       .catch(() => setFailed(true));
   }, [code]);
 
-  if (failed) return <p className={styles["muted"]}>ETF 정보를 불러오지 못했습니다.</p>;
-  if (!e) return <p className={styles["muted"]}>불러오는 중…</p>;
-  if (!e.available) return <p className={styles["muted"]}>{e.message}</p>;
+  // 한 줄 요약(compact)은 다른 문단·버튼 안에 들어가므로 <p> 대신 <span>을 쓴다 (<p> 안에 <p>는 HTML 오류)
+  const Msg = ({ text }: { text: string | null }) =>
+    compact ? <span className={styles["compact"]}>{text}</span> : <p className={styles["muted"]}>{text}</p>;
+  if (failed) return <Msg text="ETF 정보를 불러오지 못했습니다." />;
+  if (!e) return <Msg text="불러오는 중…" />;
+  if (!e.available) return <Msg text={e.message} />;
 
   const y1 = e.returns.find((r) => r.label === "1년");
 
