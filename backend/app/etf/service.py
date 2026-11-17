@@ -67,7 +67,10 @@ def _to_response(d: dict) -> EtfResponse:
         name = r.get("itemName") or ""
         if any(c in name for c in CASH_LIKE):
             continue
-        holdings.append(Weight(name=name, weight=_pct(r.get("etfWeight")) or 0, code=r.get("itemCode") or None))
+        qty = r.get("stockCount")
+        holdings.append(
+            Weight(name=name, weight=_pct(r.get("etfWeight")) or 0, code=r.get("itemCode") or None, quantity=qty if qty and qty != "-" else None)
+        )
 
     sectors = _weights(d.get("sectorPortfolioList"), SECTOR_NAMES)
     if len(sectors) == 1 and sectors[0].name == "분류 안 됨":
@@ -103,6 +106,9 @@ def _to_response(d: dict) -> EtfResponse:
         dividend_months=_months(dividend.get("dividendMonthThisYear")),
         inflows=[LabeledValue(label=label, value=inflow.get(k)) for k, label in INFLOWS if inflow.get(k) not in (None, "-")],
     )
+    # 네이버가 비중을 하나도 주지 않는 ETF(일부 액티브·해외 ETF)는 순서와 수량만 보여준다.
+    # 네이버 목록은 많이 담은 순서로 오므로(KODEX 200으로 비중 순서와 같음을 확인) 순위는 믿을 만하다.
+    res.holdings_weight_known = any(h.weight > 0 for h in res.holdings)
     res.notes = _notes(res)
     return res
 

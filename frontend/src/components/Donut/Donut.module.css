@@ -1,0 +1,74 @@
+/* 도넛 왼쪽, 범례 오른쪽. 좁으면 위아래로 */
+.wrap {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+}
+
+.svg {
+  width: 120px;
+  height: 120px;
+}
+
+.track {
+  fill: none;
+  stroke: var(--surface-2);
+  stroke-width: 14;
+}
+
+.center {
+  fill: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.center-sub {
+  fill: var(--sub);
+  font-size: 8px;
+}
+
+.legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--fs-sm);
+}
+
+.legend li {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-2);
+}
+
+.name a:hover {
+  color: var(--mint);
+  text-decoration: underline;
+}
+
+.val {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 380px) {
+  .wrap {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+}

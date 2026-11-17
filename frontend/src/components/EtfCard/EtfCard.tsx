@@ -6,6 +6,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import Donut from "@/components/Donut/Donut";
 import { fetchEtf, type Etf, type EtfWeight } from "@/lib/api";
 import styles from "./EtfCard.module.css";
 
@@ -28,7 +29,7 @@ function Bars({ items, linkable = false }: { items: EtfWeight[]; linkable?: bool
   const max = Math.max(...items.map((i) => i.weight), 1);
   return (
     <ul className={styles["bars"]}>
-      {items.map((i) => (
+      {items.map((i, idx) => (
         <li key={i.name}>
           <span className={styles["bar-name"]}>
             {linkable && i.code ? <Link href={`/${i.code}`}>{i.name}</Link> : i.name}
@@ -41,7 +42,8 @@ function Bars({ items, linkable = false }: { items: EtfWeight[]; linkable?: bool
               <span className={styles["bar-val"]}>{pct(i.weight, false)}</span>
             </>
           ) : (
-            <span className={styles["bar-val"]}>비중 정보 없음</span>
+            // 비중을 모를 때: 많이 담은 순서(순위)만
+            <span className={styles["rank"]}>{idx + 1}위</span>
           )}
         </li>
       ))}
@@ -99,7 +101,8 @@ export default function EtfCard({ code, compact = false }: { code: string; compa
       {tab === "basic" && (
         <>
           <p className={styles["lead"]}>
-            <b>{e.base_index}</b>{e.base_index?.endsWith("지수") ? "" : " 지수"}를 따라가는 ETF예요. {e.issuer && `운용사 ${e.issuer}.`}{" "}
+            <b>{e.base_index}</b>
+            {e.base_index?.endsWith("지수") ? "" : " 지수"}를 따라가는 ETF예요. {e.issuer && `운용사 ${e.issuer}.`}{" "}
             {e.listed_date && `${e.listed_date.slice(0, 4)}년 상장.`} {e.total_nav && `순자산 ${e.total_nav}.`}
           </p>
           <dl className={styles["facts"]}>
@@ -145,26 +148,47 @@ export default function EtfCard({ code, compact = false }: { code: string; compa
 
       {tab === "holdings" && (
         <>
-          {e.holdings.length > 0 && (
+          {e.holdings.length > 0 && e.holdings_weight_known && (
             <>
-              <h4 className={styles["sub-h"]}>많이 담은 것 TOP {e.holdings.length}</h4>
-              <Bars items={e.holdings} linkable />
+              <h4 className={styles["sub-h"]}>많이 담은 종목</h4>
+              <Donut
+                items={e.holdings}
+                linkable
+                maxSlices={10}
+                center={`${Math.round(e.holdings.reduce((a, h) => a + h.weight, 0))}%`}
+                centerSub={`상위 ${e.holdings.length}개`}
+              />
             </>
           )}
-          {e.assets.length > 0 && (
+          {e.holdings.length > 0 && !e.holdings_weight_known && (
             <>
-              <h4 className={styles["sub-h"]}>자산 종류</h4>
-              <Bars items={e.assets} />
+              <h4 className={styles["sub-h"]}>많이 담은 종목 TOP {e.holdings.length}</h4>
+              <Bars items={e.holdings} linkable />
+              <p className={styles["muted"]}>
+                이 ETF는 종목별 비중이 공개되지 않아(네이버·FnGuide 모두 비어 있음) 많이 담은 순서만 보여줘요. 정확한
+                비중은 운용사 홈페이지의 &quot;구성 종목(PDF)&quot;에서 볼 수 있어요.
+              </p>
             </>
           )}
           {e.sectors.length > 0 && (
             <>
               <h4 className={styles["sub-h"]}>업종</h4>
-              <Bars items={e.sectors.slice(0, 8)} />
+              <Donut
+                items={e.sectors}
+                maxSlices={6}
+                center={`${Math.round(e.sectors[0].weight)}%`}
+                centerSub={e.sectors[0].name}
+              />
+            </>
+          )}
+          {e.assets.length > 0 && (
+            <>
+              <h4 className={styles["sub-h"]}>자산 종류</h4>
+              <Donut items={e.assets} center={`${Math.round(e.assets[0].weight)}%`} centerSub={e.assets[0].name} />
             </>
           )}
           <p className={styles["muted"]}>
-            종목 이름을 누르면 그 종목 차트로 가요. 비중이 한두 종목에 몰려 있으면 그 종목 주가에 크게 흔들려요.
+            종목 이름을 누르면 그 종목 차트로 가요. 비중이 한두 종목·업종에 몰려 있으면 그 종목 주가에 크게 흔들려요.
           </p>
         </>
       )}

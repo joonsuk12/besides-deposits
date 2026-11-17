@@ -158,3 +158,14 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+/* 비중을 모를 때 순위 표시 */
+.rank {
+  justify-self: start;
+  padding: 0 8px;
+  font-size: var(--fs-xs);
+  color: var(--mint);
+  border: 1px solid var(--mint);
+  border-radius: var(--r-pill);
+}
+
