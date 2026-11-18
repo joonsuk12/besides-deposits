@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:3000"]
     # OpenDART 인증키 (https://opendart.fss.or.kr, 무료). .env의 DART_API_KEY. 없으면 공시 기능만 꺼진다.
     dart_api_key: str | None = None
+    # KRX 정보데이터시스템(data.krx.co.kr, 무료 회원) 아이디/비밀번호. .env의 KRX_ID, KRX_PW.
+    # 없으면 pykrx 로그인이 필요한 기능(ETF 구성종목 비중 등)만 건너뛴다.
+    krx_id: str | None = None
+    krx_pw: str | None = None
 
 
 settings = Settings()

@@ -161,6 +161,7 @@ export type Etf = {
   returns: { label: string; value: number | string | null }[];
   holdings: EtfWeight[];
   holdings_weight_known: boolean;
+  holdings_source: string | null;
   assets: EtfWeight[];
   sectors: EtfWeight[];
   dividend_yield: number | null;
