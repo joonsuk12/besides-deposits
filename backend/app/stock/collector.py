@@ -52,6 +52,9 @@ def fetch_daily_prices(code: str, start: date, end: date) -> list[PriceRow]:
 
 
 def _fetch_from_pykrx(code: str, start: date, end: date) -> list[PriceRow]:
+    from app.core.krx import use_login
+
+    use_login()
     from pykrx import stock as krx
 
     df = krx.get_market_ohlcv(start.strftime("%Y%m%d"), end.strftime("%Y%m%d"), code)

@@ -28,7 +28,8 @@ class EtfResponse(BaseModel):
     total_nav: str | None = None  # 순자산 규모
     returns: list[LabeledValue] = []  # 기간 수익률 %
     holdings: list[Weight] = []  # 담긴 종목 TOP10 (많이 담은 순서)
-    holdings_weight_known: bool = True  # False면 비중을 알 수 없어 순서·수량만 보여준다 (액티브·해외 ETF 등)
+    holdings_weight_known: bool = True  # False면 비중을 알 수 없어 순서만 보여준다 (액티브·해외 ETF 등)
+    holdings_source: str | None = None  # 비중을 네이버가 아닌 곳에서 채웠으면 그 출처 ("KRX", "운용사 홈페이지")
     assets: list[Weight] = []  # 자산 종류 비중 (주식·채권·현금·기타)
     sectors: list[Weight] = []  # 업종 비중
     dividend_yield: float | None = None  # 분배금 수익률 %/년

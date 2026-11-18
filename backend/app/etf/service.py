@@ -4,6 +4,7 @@ ETF 정보를 반나절에 한 번 받아 저장하고, 화면용으로 정리�
 - 영어 코드(EQUITY, IT …)를 한글로 바꾸고, 비중 0%인 항목은 뺀다
 - 금 같은 원자재 ETF는 담긴 "종목" 대신 "설정현금액 100%"처럼 나와서, 실제 자산(금 현물 등)만 남긴다
 - 보수·괴리율·추적오차를 보고 초보용 한 줄 해설을 붙인다 (매수·매도 권유는 하지 않는다)
+- 네이버가 종목 비중을 비워 주는 ETF(해외·액티브)는 KRX 구성종목 → 운용사 홈페이지 순서로 비중을 찾아 채운다
 """
 import json
 import re
@@ -13,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.core import fetch_log
 from app.etf import client, repository
-from app.etf.models import EtfInfo
+from app.etf.models import EtfHoldings, EtfInfo
 from app.etf.schemas import EtfResponse, LabeledValue, Weight
 
 REFRESH_MIN = 720
@@ -46,7 +47,46 @@ def get_by_stock(db: Session, code: str) -> EtfResponse:
     saved = repository.find(db, code)
     if saved is None:
         return EtfResponse(available=False, message="ETF 정보가 없어요.")
-    return _to_response(json.loads(saved.raw_json))
+    raw = json.loads(saved.raw_json)
+    res = _to_response(raw)
+    if res.holdings and not res.holdings_weight_known:
+        _fill_from_other_source(db, code, raw.get("issuerName"), res)
+    return res
+
+
+def _fill_from_other_source(db: Session, code: str, issuer: str | None, res: EtfResponse) -> None:
+    """네이버에 비중이 없을 때 KRX 구성종목, 그다음 운용사 홈페이지에서 비중을 받아 담긴 종목을 바꿔 끼운다."""
+    key = f"etf-pdf:{code}"
+    if not fetch_log.is_fresh(db, key, REFRESH_MIN):
+        try:
+            prev = repository.find_holdings(db, code)
+            rows, source, hint = _krx_rows(code), "KRX", None
+            if not any(r["weight"] > 0 for r in rows):  # KRX는 해외 종목 비중을 0으로 준다
+                rows, hint = client.fetch_issuer_pdf(code, issuer, prev.page_hint if prev else None)
+                source = "운용사 홈페이지"
+            if rows:
+                repository.save_holdings(
+                    db,
+                    EtfHoldings(
+                        stock_code=code, source=source, page_hint=hint,
+                        raw_json=json.dumps(rows, ensure_ascii=False), fetched_at=datetime.now(),
+                    ),
+                )
+            fetch_log.mark_fetched(db, key)
+            db.commit()
+        except Exception as e:  # KRX·운용사 사이트 장애로 화면 전체가 죽지 않게
+            db.rollback()
+            print(f"  ETF 구성종목 비중 수집 실패({code}): {e!r}")
+
+    saved = repository.find_holdings(db, code)
+    if saved is None:
+        return
+    rows = [r for r in json.loads(saved.raw_json) if r["weight"] > 0 and not any(c in r["name"] for c in CASH_LIKE)]
+    if not rows:
+        return
+    res.holdings = [Weight(name=r["name"], weight=r["weight"], code=r["code"]) for r in rows[:10]]
+    res.holdings_weight_known = True
+    res.holdings_source = f"{saved.source}에서 {saved.fetched_at:%Y-%m-%d}에 받은 비중"
 
 
 def _weights(rows: list[dict] | None, names: dict[str, str]) -> list[Weight]:
@@ -111,6 +151,15 @@ def _to_response(d: dict) -> EtfResponse:
     res.holdings_weight_known = any(h.weight > 0 for h in res.holdings)
     res.notes = _notes(res)
     return res
+
+
+def _krx_rows(code: str) -> list[dict]:
+    """KRX가 로그인 실패·사이트 변경으로 안 돼도 운용사 홈페이지로 넘어가게 오류를 여기서 삼킨다."""
+    try:
+        return client.fetch_krx_pdf(code)
+    except Exception as e:
+        print(f"  KRX 구성종목 실패({code}): {e!r} → 운용사 홈페이지로")
+        return []
 
 
 def _fill_single_weight(holdings: list[Weight], assets: list[Weight]) -> list[Weight]:

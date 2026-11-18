@@ -158,6 +158,11 @@ export default function EtfCard({ code, compact = false }: { code: string; compa
                 center={`${Math.round(e.holdings.reduce((a, h) => a + h.weight, 0))}%`}
                 centerSub={`상위 ${e.holdings.length}개`}
               />
+              {e.holdings_source && (
+                <p className={styles["muted"]}>
+                  네이버에 비중이 없어 {e.holdings_source}이에요. 영어 이름은 해외 종목이라 눌러도 차트로 가지 않아요.
+                </p>
+              )}
             </>
           )}
           {e.holdings.length > 0 && !e.holdings_weight_known && (
@@ -165,8 +170,8 @@ export default function EtfCard({ code, compact = false }: { code: string; compa
               <h4 className={styles["sub-h"]}>많이 담은 종목 TOP {e.holdings.length}</h4>
               <Bars items={e.holdings} linkable />
               <p className={styles["muted"]}>
-                이 ETF는 종목별 비중이 공개되지 않아(네이버·FnGuide 모두 비어 있음) 많이 담은 순서만 보여줘요. 정확한
-                비중은 운용사 홈페이지의 &quot;구성 종목(PDF)&quot;에서 볼 수 있어요.
+                이 ETF는 종목별 비중을 찾지 못해(네이버·KRX·운용사 홈페이지) 많이 담은 순서만 보여줘요. 정확한 비중은
+                운용사 홈페이지의 &quot;구성 종목(PDF)&quot;에서 볼 수 있어요.
               </p>
             </>
           )}
