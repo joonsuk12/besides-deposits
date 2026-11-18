@@ -2,7 +2,7 @@
 
 // 종목 차트 화면 (주소: /005930). NewStocks의 종목 화면 배치를 따른다.
 //   왼쪽: 관심 종목 목록
-//   가운데: 차트(뉴스 N·리포트 R·공시 D 표시) → 선택한 날(가격 한 줄 + 그날 뉴스 | 공시·리포트) → 이번 주 많이 다뤄진 뉴스 3개
+//   가운데: 차트(뉴스 N·리포트 R·공시 D·크게 움직인 날 ⚡ 표시) → 크게 움직인 날 칩 → 선택한 날(크게 움직인 날이면 "왜 움직였을까" 상자)(가격 한 줄 + 그날 뉴스 | 공시·리포트) → 이번 주 많이 다뤄진 뉴스 3개
 //   (뉴스·공시·리포트는 3개씩만 먼저 보여주고 나머지는 "더 보기" — 초보가 정보에 묻히지 않게)
 //   오른쪽: 이 종목 요약 — [주가 수준 | 연간 흐름 | 회사 소개] 탭 → 최근 공시 → 최근 증권사 리포트 → 캔들 읽는 법
 
@@ -21,16 +21,19 @@ import RiskCard from "@/components/RiskCard/RiskCard";
 import StockInfoCard from "@/components/StockInfoCard/StockInfoCard";
 import TrendCard from "@/components/TrendCard/TrendCard";
 import WatchlistSidebar from "@/components/WatchlistSidebar/WatchlistSidebar";
+import WhyMoved, { MoveChips } from "@/components/WhyMoved/WhyMoved";
 import {
   addWatch,
   fetchPrices,
   fetchStock,
+  fetchMoves,
   fetchStockDisclosures,
   fetchStockNews,
   fetchStockReports,
   fetchWatchlist,
   removeWatch,
   type DisclosureList as Disclosures,
+  type Moves,
   type News,
   type Price,
   type Report,
@@ -75,6 +78,7 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
   const [news, setNews] = useState<News[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [disclosures, setDisclosures] = useState<Disclosures | null>(null);
+  const [moves, setMoves] = useState<Moves | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +96,7 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
     setNews([]);
     setReports([]);
     setDisclosures(null);
+    setMoves(null);
     fetchStock(code)
       .then(setStock)
       .catch(() => setError("종목을 찾을 수 없거나 백엔드(8100번 포트)가 꺼져 있습니다."));
@@ -103,6 +108,9 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
       .catch(() => {});
     fetchStockDisclosures(code, 365)
       .then(setDisclosures)
+      .catch(() => {});
+    fetchMoves(code)
+      .then(setMoves)
       .catch(() => {});
   }, [code]);
 
@@ -151,8 +159,9 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
       disclosureDates: new Set(
         [...byDay.disclosuresByDay].filter(([, list]) => list.some((d) => d.level !== "info")).map(([day]) => day),
       ),
+      moveDates: new Map((moves?.moves ?? []).map((m) => [m.date, m.change_pct])),
     }),
-    [byDay],
+    [byDay, moves],
   );
 
   // 최근 7일 동안 여러 언론사가 다룬 뉴스 = 키포인트
@@ -194,6 +203,7 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
   const latestReports = useMemo(() => [...reports].sort((a, b) => b.write_date.localeCompare(a.write_date)), [reports]);
   const dayReports = selectedDate ? (byDay.reportsByDay.get(selectedDate) ?? []) : [];
   const dayDisclosures = selectedDate ? (byDay.disclosuresByDay.get(selectedDate) ?? []) : [];
+  const dayMove = moves?.moves.find((m) => m.date === selectedDate) ?? null;
 
   return (
     <div className={styles["mainpage"]}>
@@ -245,9 +255,10 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
         </div>
         <p className={styles["hint"]}>
           <b className={styles["mark-n"]}>N</b> 뉴스가 있는 날 · <b className={styles["mark-r"]}>R</b> 증권사 리포트가
-          나온 날 · <b className={styles["mark-d"]}>D</b> 중요 공시가 나온 날 — 차트에서 날짜를 누르면 그날의 내용이
-          바로 아래에 나옵니다.
+          나온 날 · <b className={styles["mark-d"]}>D</b> 중요 공시가 나온 날 · <b className={styles["mark-m"]}>⚡</b> 크게
+          움직인 날 — 차트에서 날짜를 누르면 그날의 내용이 바로 아래에 나옵니다.
         </p>
+        <MoveChips moves={moves} selectedDate={selectedDate} onSelect={setSelectedDate} />
 
         {/* 선택한 날: 차트 바로 아래. 가격은 한 줄 띠로, 그날 내용은 두 칸(왼쪽 뉴스 / 오른쪽 공시·리포트) */}
         {selected && (
@@ -271,6 +282,8 @@ export default function StockPage({ params }: { params: Promise<{ code: string }
               </span>
               <span className={styles["sub"]}>거래량 {won(selected.day.volume)}주</span>
             </div>
+
+            {dayMove && <WhyMoved move={dayMove} />}
 
             <div className={styles["day-cols"]}>
               <div>

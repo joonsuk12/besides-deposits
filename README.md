@@ -93,7 +93,7 @@ backend/app/
     collector.py     ← 외부 데이터 수집 (NewStocks의 파이썬 pykrx 서버 역할)
 ```
 
-도메인이 늘면 같은 모양으로 추가한다. 지금 있는 도메인: `stock/`(종목·주가), `report/`(증권사 리포트), `news/`(종목 뉴스), `disclosure/`(OpenDART 공시), `valuation/`(PER·PBR), `etf/`(ETF 정보), `trend/`(매매동향), `risk/`(위험 신호), `mydata/`(사용자 답 기록).
+도메인이 늘면 같은 모양으로 추가한다. 지금 있는 도메인: `stock/`(종목·주가), `report/`(증권사 리포트), `news/`(종목 뉴스), `disclosure/`(OpenDART 공시), `valuation/`(PER·PBR), `etf/`(ETF 정보), `trend/`(매매동향), `risk/`(위험 신호), `mydata/`(사용자 답 기록), `move/`(크게 움직인 날·시장 지수).
 
 - 외부 데이터를 가져오는 코드는 도메인마다 `client.py`(stock은 `collector.py`), 키포인트 규칙은 `keypoints.py`에 둔다.
 - 공용: `core/naver.py`(네이버 증권 호출, 요청 간격 0.5초), `core/fetch_log.py`(마지막 수집 시각 기록 → 30분~3시간 안에는 다시 요청하지 않음), `core/text.py`(HTML·문장 처리).
@@ -158,6 +158,7 @@ backend/app/
   - 네이버에 종목 비중이 없는 해외·액티브 ETF는 KRX 구성종목 → 운용사 홈페이지(지금은 TIME)에서 비중을 받아 도넛으로 (2026-11-18). KRX는 `.env`에 `KRX_ID`·`KRX_PW`(아이디/비밀번호로 가입한 무료 계정)
 - [x] **연간 흐름 정확도** — 오래된 해 PER·PBR을 해마다의 주식 수와 액면분할 보정으로 계산 (2026-11-17)
 - [x] **위험 신호 점검 + 마이데이터** — 공시 1년치·연도별 재무로 함정 8가지를 신호등(🔴🟡🟢)으로, 카드 아래 질문 답을 마이데이터(`/mydata`)에 그날 종가와 함께 저장 (2026-11-18)
+- [x] **오늘 왜 움직였지?** — 크게 움직인 날(종목별 기준, 시장보다 유난히 움직인 날 포함)을 차트 ⚡·칩으로, 그날 코스피·코스닥 대비·공시·투자자별 매매·거래량을 한 상자에 (2026-11-18)
 
 단계가 끝날 때마다: 사용자가 직접 띄워 보고 → Claude가 요청 흐름을 Spring 기준으로 설명 → 이 표와 [docs/decisions.md](docs/decisions.md) 갱신 → 커밋.
 
