@@ -13,8 +13,10 @@ from app.core.database import SessionLocal, create_tables
 from app.stock import service as stock_service
 from app.disclosure.router import router as disclosure_router
 from app.etf.router import router as etf_router
+from app.mydata.router import router as mydata_router
 from app.news.router import router as news_router
 from app.report.router import router as report_router
+from app.risk.router import router as risk_router
 from app.stock.router import router as stock_router
 from app.trend.router import router as trend_router
 from app.valuation.router import router as valuation_router
@@ -47,3 +49,5 @@ app.include_router(disclosure_router)
 app.include_router(etf_router)
 app.include_router(valuation_router)
 app.include_router(trend_router)
+app.include_router(risk_router)
+app.include_router(mydata_router)

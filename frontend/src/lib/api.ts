@@ -211,3 +211,38 @@ export type DisclosureList = { available: boolean; message: string | null; items
 
 export const fetchStockDisclosures = (code: string, days = 180) =>
   request<DisclosureList>(`/disclosures/stock/${code}?days=${days}`);
+
+export type RiskEvidence = { date: string | null; text: string; url: string | null };
+export type RiskStatus = "ok" | "caution" | "danger";
+export type RiskCheck = { key: string; title: string; status: RiskStatus; summary: string; why: string; evidence: RiskEvidence[] };
+export type Risk = {
+  available: boolean;
+  message: string | null;
+  period_days: number;
+  checks: RiskCheck[];
+  counts: Record<RiskStatus, number>;
+};
+export const fetchRisk = (code: string) => request<Risk>(`/risk/${code}`);
+
+// 마이데이터: 화면의 질문에 답한 기록 (나중에 가공용)
+export type MyRecordInput = {
+  kind: string;
+  stock_code?: string | null;
+  question: string;
+  answer: string;
+  answer_label: string;
+  memo?: string;
+  context?: Record<string, unknown>;
+};
+export type MyRecord = Required<MyRecordInput> & { id: number; created_at: string };
+export const fetchMyRecords = (kind: string, stockCode?: string, limit = 5) =>
+  request<MyRecord[]>(`/mydata?kind=${kind}${stockCode ? `&stock_code=${stockCode}` : ""}&limit=${limit}`);
+export async function saveMyRecord(input: MyRecordInput): Promise<MyRecord> {
+  const res = await fetch(`${API_URL}/mydata`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(`저장 실패 (${res.status})`);
+  return res.json();
+}

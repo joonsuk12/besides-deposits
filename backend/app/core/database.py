@@ -40,6 +40,7 @@ def create_tables() -> None:
     from app.core import fetch_log  # noqa: F401
     from app.disclosure import models as disclosure_models  # noqa: F401
     from app.etf import models as etf_models  # noqa: F401
+    from app.mydata import models as mydata_models  # noqa: F401
     from app.news import models as news_models  # noqa: F401
     from app.report import models as report_models  # noqa: F401
     from app.stock import models as stock_models  # noqa: F401
