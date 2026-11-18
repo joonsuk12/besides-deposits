@@ -1,0 +1,173 @@
+.muted {
+  margin: 6px 0 0;
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+  color: var(--sub);
+}
+
+.lead {
+  margin: 0 0 10px;
+  font-size: var(--fs-md);
+  line-height: 1.55;
+  color: var(--text-2);
+}
+
+.lead b {
+  white-space: nowrap;
+}
+
+.danger .title,
+b.danger {
+  color: var(--danger);
+}
+
+.caution .title,
+b.caution {
+  color: var(--warn);
+}
+
+b.ok {
+  color: var(--mint);
+}
+
+.clean {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--mint);
+  background: var(--mint-soft);
+  font-size: var(--fs-md);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.list > li {
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+
+.list > li.danger {
+  background: var(--danger-soft);
+}
+
+.list > li.caution {
+  background: var(--warn-soft);
+}
+
+.row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 14px;
+  gap: 8px;
+  align-items: start;
+  padding: 8px 10px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.icon {
+  line-height: 1.4;
+}
+
+.body {
+  display: grid;
+  gap: 2px;
+}
+
+.title {
+  font-size: var(--fs-base);
+  font-weight: 700;
+}
+
+.summary {
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.chev {
+  font-size: var(--fs-xs);
+  color: var(--sub);
+  line-height: 1.8;
+}
+
+.detail {
+  padding: 0 10px 10px 38px;
+  font-size: var(--fs-md);
+  line-height: 1.55;
+  color: var(--text-2);
+}
+
+.detail p {
+  margin: 0 0 6px;
+}
+
+.evidence {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  font-size: var(--fs-sm);
+}
+
+.evidence a:hover {
+  color: var(--mint);
+  text-decoration: underline;
+}
+
+.date {
+  margin-right: 6px;
+  color: var(--sub);
+  font-variant-numeric: tabular-nums;
+}
+
+.more {
+  margin-top: 8px;
+}
+
+.ask {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.q {
+  margin: 0;
+  font-size: var(--fs-base);
+  font-weight: 700;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.memo {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.memo input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-md);
+}

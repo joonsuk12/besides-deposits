@@ -15,6 +15,9 @@
   --up: #ff5a5a; /* 상승·좋은 소식 */
   --down: #5b9bff; /* 하락·나쁜 소식 */
   --warn: #ffc861; /* 주의·내용 확인 */
+  --danger: #ff6b6b; /* 위험 신호 (빨강 신호등) */
+  --danger-soft: rgba(255, 107, 107, 0.1);
+  --warn-soft: rgba(255, 200, 97, 0.1);
   --key: #9ec5ff;
   --hover: #646a89;
   --panel: #3b3f52;
