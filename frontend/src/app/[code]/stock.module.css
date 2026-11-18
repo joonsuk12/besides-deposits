@@ -209,6 +209,10 @@
   color: var(--warn);
 }
 
+.mark-m {
+  color: var(--mint);
+}
+
 /* 선택한 날 (차트 바로 아래) */
 .day-panel {
   margin-top: 14px;

@@ -4,7 +4,7 @@
 // - 일봉(최대 10년)을 받아 일·주·월·연봉으로 묶어 그린다. 줌 아웃하면 주→월→연봉, 줌 인하면 반대로 자동 전환
 //   (예전에는 줌 아웃하면 데이터가 없는 왼쪽이 빈 공간으로 보였다). 왼쪽 위 버튼으로 직접 고를 수도 있다.
 // - 데이터 양 끝 너머로는 스크롤되지 않게 막는다 (fixLeftEdge / fixRightEdge).
-// - markers: 뉴스(N, 캔들 아래), 리포트(R, 캔들 위), 중요 공시(D, 캔들 위). 주·월봉에서는 그 기간 안에 있으면 표시
+// - markers: 뉴스(N, 캔들 아래), 리포트(R, 캔들 위), 중요 공시(D, 캔들 위), 크게 움직인 날(⚡ 민트 화살표). 주·월봉에서는 그 기간 안에 있으면 표시
 // - rangeDays: 3개월·1년 같은 기간 버튼. 그 기간이 보이게 맞추고 알맞은 봉으로 바꾼다
 // - 날짜를 누르면 onSelectDate로 그 날짜(주·월봉이면 그 기간의 마지막 거래일)를 알려준다
 // - 보조지표: 이동평균선(5·20·60·120), 볼린저밴드, RSI, MACD. 위쪽 "지표" 메뉴로 켜고 끈다(브라우저에 기억).
@@ -34,7 +34,12 @@ import { bollinger, ichimoku, macd, rsi, sma, stochastic, type Series } from "@/
 const UP = "#ff5a5a";
 const DOWN = "#5b9bff";
 
-export type DayMarks = { newsDates: Set<string>; reportDates: Set<string>; disclosureDates: Set<string> };
+export type DayMarks = {
+  newsDates: Set<string>;
+  reportDates: Set<string>;
+  disclosureDates: Set<string>;
+  moveDates?: Map<string, number>; // 크게 움직인 날 → 등락률(%)
+};
 
 type Interval = "day" | "week" | "month" | "year";
 const INTERVALS: { key: Interval; label: string }[] = [
@@ -412,6 +417,13 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
       if (has(m.reportDates)) list.push({ time: b.time, position: "aboveBar", color: "#ff7ad9", shape: "circle", text: "R" });
       if (has(m.disclosureDates)) list.push({ time: b.time, position: "aboveBar", color: "#ffc861", shape: "square", text: "D" });
       if (has(m.newsDates)) list.push({ time: b.time, position: "belowBar", color: "#b4ff4a", shape: "circle", text: "N" });
+      const move = m.moveDates && b.days.map((d) => m.moveDates!.get(d)).find((v) => v !== undefined);
+      if (move !== undefined && move !== null)
+        list.push(
+          move > 0
+            ? { time: b.time, position: "belowBar", color: "#4fe7b0", shape: "arrowUp", text: "⚡" }
+            : { time: b.time, position: "aboveBar", color: "#4fe7b0", shape: "arrowDown", text: "⚡" },
+        );
     }
     plugin.setMarkers(list);
   };
