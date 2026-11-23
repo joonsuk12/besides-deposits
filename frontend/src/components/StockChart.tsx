@@ -6,6 +6,7 @@
 // - 데이터 양 끝 너머로는 스크롤되지 않게 막는다 (fixLeftEdge / fixRightEdge).
 // - markers: 뉴스(N, 캔들 아래), 리포트(R, 캔들 위), 중요 공시(D, 캔들 위). 주·월봉에서는 그 기간 안에 있으면 표시
 // - rangeDays: 3개월·1년 같은 기간 버튼. 그 기간이 보이게 맞추고 알맞은 봉으로 바꾼다
+// - cutDate(선택): 타임머신 연습에서 문제 날짜에 "여기까지 봤어요" 표시
 // - 날짜를 누르면 onSelectDate로 그 날짜(주·월봉이면 그 기간의 마지막 거래일)를 알려준다
 // - 보조지표: 이동평균선(5·20·60·120), 볼린저밴드, RSI, MACD. 위쪽 "지표" 메뉴로 켜고 끈다(브라우저에 기억).
 //   지금 보고 있는 봉 기준으로 계산한다 (주봉에서 5선 = 5주선). 계산은 lib/indicators.ts
@@ -34,7 +35,12 @@ import { bollinger, ichimoku, macd, rsi, sma, stochastic, type Series } from "@/
 const UP = "#ff5a5a";
 const DOWN = "#5b9bff";
 
-export type DayMarks = { newsDates: Set<string>; reportDates: Set<string>; disclosureDates: Set<string> };
+export type DayMarks = {
+  newsDates: Set<string>;
+  reportDates: Set<string>;
+  disclosureDates: Set<string>;
+  cutDate?: string; // 타임머신 연습: "여기까지 봤어요" 표시할 날
+};
 
 type Interval = "day" | "week" | "month" | "year";
 const INTERVALS: { key: Interval; label: string }[] = [
@@ -58,7 +64,15 @@ type Indicators = {
 };
 const MA_PERIODS = [5, 20, 60, 120]; // 한국 증권사 앱 기본값 (1주·1달·3달·6달 거래일)
 const MA_COLORS: Record<number, string> = { 5: "#ffd84d", 20: "#ff7ad9", 60: "#4fe7b0", 120: "#b18cff" };
-const DEFAULT_IND: Indicators = { ma: MA_PERIODS, bb: false, rsi: false, macd: false, w52: false, ichimoku: false, stoch: false };
+const DEFAULT_IND: Indicators = {
+  ma: MA_PERIODS,
+  bb: false,
+  rsi: false,
+  macd: false,
+  w52: false,
+  ichimoku: false,
+  stoch: false,
+};
 const IND_KEY = "stroll.indicators";
 const IND_HELP = {
   ma: "최근 N개 봉 종가의 평균을 이은 선. 짧은 선이 긴 선을 뚫고 오르면 골든크로스, 내리면 데드크로스라고 불러요.",
@@ -66,10 +80,17 @@ const IND_HELP = {
   rsi: "최근 14개 봉 동안 오른 힘이 얼마나 센지 0~100으로. 70 이상은 과열, 30 이하는 침체로 봐요.",
   macd: "짧은 평균(12)과 긴 평균(26)의 차이. 신호선(9)을 위로 뚫으면 오르는 힘이 세지는 신호로 봐요.",
   w52: "최근 1년(52주) 동안 가장 높았던·낮았던 가격을 가로선으로. 지금 주가가 1년 중 어디쯤인지 한눈에 봐요.",
-  ichimoku: "일본에서 만든 지표로 한국에서도 인기예요. 전환선·기준선과, 앞으로 밀어 그린 두 선행스팬 사이 '구름'을 봐요. 주가가 구름 위면 강세, 아래면 약세로 봐요.",
+  ichimoku:
+    "일본에서 만든 지표로 한국에서도 인기예요. 전환선·기준선과, 앞으로 밀어 그린 두 선행스팬 사이 '구름'을 봐요. 주가가 구름 위면 강세, 아래면 약세로 봐요.",
   stoch: "최근 14개 봉의 최고·최저 사이에서 지금 가격 위치(0~100). 80 이상 과열, 20 이하 침체. RSI보다 민감해요.",
 };
-const ICHI = { tenkan: "#ff9f43", kijun: "#54a0ff", spanA: "rgba(255,90,90,0.75)", spanB: "rgba(91,155,255,0.75)", lagging: "rgba(200,200,200,0.5)" };
+const ICHI = {
+  tenkan: "#ff9f43",
+  kijun: "#54a0ff",
+  spanA: "rgba(255,90,90,0.75)",
+  spanB: "rgba(91,155,255,0.75)",
+  lagging: "rgba(200,200,200,0.5)",
+};
 
 // 봉 하나 뒤의 날짜 (일목균형표 선행스팬을 미래 자리에 그리기 위해)
 function nextTime(t: string, interval: Interval): string {
@@ -139,7 +160,16 @@ function aggregate(prices: Price[], interval: Interval): Bar[] {
   for (const p of prices) {
     const key = bucketKey(p.date, interval);
     if (!cur || key !== curKey) {
-      cur = { time: p.date, last: p.date, open: p.open, high: p.high, low: p.low, close: p.close, volume: p.volume, days: [p.date] };
+      cur = {
+        time: p.date,
+        last: p.date,
+        open: p.open,
+        high: p.high,
+        low: p.low,
+        close: p.close,
+        volume: p.volume,
+        days: [p.date],
+      };
       curKey = key;
       bars.push(cur);
     } else {
@@ -290,8 +320,17 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
       const candleData = bars.map((b) => ({ time: b.time, open: b.open, high: b.high, low: b.low, close: b.close }));
       candles.setData([...candleData, ...times.slice(bars.length).map((t) => ({ time: t }))]);
     }
-    const toLine = (vals: Series) => times.map((t, i) => (vals[i] === null || vals[i] === undefined ? { time: t } : { time: t, value: vals[i] as number }));
-    const addLine = (vals: Series, color: string, pane: number, style: LineStyle = LineStyle.Solid, width: 1 | 2 = 1) => {
+    const toLine = (vals: Series) =>
+      times.map((t, i) =>
+        vals[i] === null || vals[i] === undefined ? { time: t } : { time: t, value: vals[i] as number },
+      );
+    const addLine = (
+      vals: Series,
+      color: string,
+      pane: number,
+      style: LineStyle = LineStyle.Solid,
+      width: 1 | 2 = 1,
+    ) => {
       const sr = chart.addSeries(
         LineSeries,
         {
@@ -336,8 +375,22 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
       const low = Math.min(...lastYear.map((p) => p.low));
       data.w52 = { high, low };
       priceLinesRef.current.push(
-        candles.createPriceLine({ price: high, color: "rgba(255,90,90,0.8)", lineStyle: LineStyle.LargeDashed, lineWidth: 1, axisLabelVisible: true, title: "52주 최고" }),
-        candles.createPriceLine({ price: low, color: "rgba(91,155,255,0.8)", lineStyle: LineStyle.LargeDashed, lineWidth: 1, axisLabelVisible: true, title: "52주 최저" }),
+        candles.createPriceLine({
+          price: high,
+          color: "rgba(255,90,90,0.8)",
+          lineStyle: LineStyle.LargeDashed,
+          lineWidth: 1,
+          axisLabelVisible: true,
+          title: "52주 최고",
+        }),
+        candles.createPriceLine({
+          price: low,
+          color: "rgba(91,155,255,0.8)",
+          lineStyle: LineStyle.LargeDashed,
+          lineWidth: 1,
+          axisLabelVisible: true,
+          title: "52주 최저",
+        }),
       );
     }
     let pane = 2;
@@ -345,16 +398,44 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
       data.stoch = stochastic(highs, lows, closes);
       const sr = addLine(data.stoch.k, "#4fe7b0", pane);
       addLine(data.stoch.d, "#ff7ad9", pane);
-      sr.createPriceLine({ price: 80, color: "rgba(255,90,90,0.6)", lineStyle: LineStyle.Dashed, lineWidth: 1, axisLabelVisible: true, title: "과열" });
-      sr.createPriceLine({ price: 20, color: "rgba(91,155,255,0.6)", lineStyle: LineStyle.Dashed, lineWidth: 1, axisLabelVisible: true, title: "침체" });
+      sr.createPriceLine({
+        price: 80,
+        color: "rgba(255,90,90,0.6)",
+        lineStyle: LineStyle.Dashed,
+        lineWidth: 1,
+        axisLabelVisible: true,
+        title: "과열",
+      });
+      sr.createPriceLine({
+        price: 20,
+        color: "rgba(91,155,255,0.6)",
+        lineStyle: LineStyle.Dashed,
+        lineWidth: 1,
+        axisLabelVisible: true,
+        title: "침체",
+      });
       chart.panes()[pane]?.setHeight(90);
       pane += 1;
     }
     if (cfg.rsi) {
       data.rsi = rsi(closes);
       const sr = addLine(data.rsi, "#ffc861", pane);
-      sr.createPriceLine({ price: 70, color: "rgba(255,90,90,0.6)", lineStyle: LineStyle.Dashed, lineWidth: 1, axisLabelVisible: true, title: "과열" });
-      sr.createPriceLine({ price: 30, color: "rgba(91,155,255,0.6)", lineStyle: LineStyle.Dashed, lineWidth: 1, axisLabelVisible: true, title: "침체" });
+      sr.createPriceLine({
+        price: 70,
+        color: "rgba(255,90,90,0.6)",
+        lineStyle: LineStyle.Dashed,
+        lineWidth: 1,
+        axisLabelVisible: true,
+        title: "과열",
+      });
+      sr.createPriceLine({
+        price: 30,
+        color: "rgba(91,155,255,0.6)",
+        lineStyle: LineStyle.Dashed,
+        lineWidth: 1,
+        axisLabelVisible: true,
+        title: "침체",
+      });
       chart.panes()[pane]?.setHeight(90);
       pane += 1;
     }
@@ -364,7 +445,9 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
       hist.setData(
         times.map((t, i) => {
           const v = data.macd!.hist[i];
-          return v === null || v === undefined ? { time: t } : { time: t, value: v, color: v >= 0 ? "rgba(255,90,90,0.5)" : "rgba(91,155,255,0.5)" };
+          return v === null || v === undefined
+            ? { time: t }
+            : { time: t, value: v, color: v >= 0 ? "rgba(255,90,90,0.5)" : "rgba(91,155,255,0.5)" };
         }),
       );
       indSeriesRef.current.push(hist);
@@ -391,8 +474,14 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
     }
     if (d.bb) parts.push(`<span class="lg-sub">볼린저 ${fmt(d.bb.lower[i])} ~ ${fmt(d.bb.upper[i])}</span>`);
     if (d.rsi) parts.push(`<span style="color:#ffc861">RSI ${fmt(d.rsi[i], 1)}</span>`);
-    if (d.macd) parts.push(`<span style="color:#4fe7b0">MACD ${fmt(d.macd.macd[i])}</span> <span style="color:#ff7ad9">신호 ${fmt(d.macd.signal[i])}</span>`);
-    if (d.stoch) parts.push(`<span style="color:#4fe7b0">스토캐스틱 %K ${fmt(d.stoch.k[i], 1)}</span> <span style="color:#ff7ad9">%D ${fmt(d.stoch.d[i], 1)}</span>`);
+    if (d.macd)
+      parts.push(
+        `<span style="color:#4fe7b0">MACD ${fmt(d.macd.macd[i])}</span> <span style="color:#ff7ad9">신호 ${fmt(d.macd.signal[i])}</span>`,
+      );
+    if (d.stoch)
+      parts.push(
+        `<span style="color:#4fe7b0">스토캐스틱 %K ${fmt(d.stoch.k[i], 1)}</span> <span style="color:#ff7ad9">%D ${fmt(d.stoch.d[i], 1)}</span>`,
+      );
     if (d.ichimoku)
       parts.push(
         `<span style="color:${ICHI.tenkan}">전환 ${fmt(d.ichimoku.tenkan[i])}</span> <span style="color:${ICHI.kijun}">기준 ${fmt(d.ichimoku.kijun[i])}</span> <span class="lg-sub">구름 ${fmt(d.ichimoku.spanA[i])} ~ ${fmt(d.ichimoku.spanB[i])}</span>`,
@@ -409,9 +498,20 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
     const list: SeriesMarker<Time>[] = [];
     for (const b of barsRef.current) {
       const has = (set: Set<string>) => b.days.some((d) => set.has(d));
-      if (has(m.reportDates)) list.push({ time: b.time, position: "aboveBar", color: "#ff7ad9", shape: "circle", text: "R" });
-      if (has(m.disclosureDates)) list.push({ time: b.time, position: "aboveBar", color: "#ffc861", shape: "square", text: "D" });
-      if (has(m.newsDates)) list.push({ time: b.time, position: "belowBar", color: "#b4ff4a", shape: "circle", text: "N" });
+      if (has(m.reportDates))
+        list.push({ time: b.time, position: "aboveBar", color: "#ff7ad9", shape: "circle", text: "R" });
+      if (has(m.disclosureDates))
+        list.push({ time: b.time, position: "aboveBar", color: "#ffc861", shape: "square", text: "D" });
+      if (has(m.newsDates))
+        list.push({ time: b.time, position: "belowBar", color: "#b4ff4a", shape: "circle", text: "N" });
+      if (m.cutDate && b.days.includes(m.cutDate))
+        list.push({
+          time: b.time,
+          position: "aboveBar",
+          color: "#4fe7b0",
+          shape: "arrowDown",
+          text: "여기까지 봤어요",
+        });
     }
     plugin.setMarkers(list);
   };
@@ -499,9 +599,12 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
       updateLegend(barsRef.current.indexOf(bar));
       const m = marksRef.current;
       const has = (set?: Set<string>) => !!set && bar.days.some((d) => set.has(d));
-      const tags = [has(m?.newsDates) ? "📰 뉴스" : "", has(m?.reportDates) ? "📄 리포트" : "", has(m?.disclosureDates) ? "📢 공시" : ""].filter(Boolean);
-      const label =
-        intervalRef.current === "day" ? bar.time : `${NAME[intervalRef.current]} ${bar.time} ~ ${bar.last}`;
+      const tags = [
+        has(m?.newsDates) ? "📰 뉴스" : "",
+        has(m?.reportDates) ? "📄 리포트" : "",
+        has(m?.disclosureDates) ? "📢 공시" : "",
+      ].filter(Boolean);
+      const label = intervalRef.current === "day" ? bar.time : `${NAME[intervalRef.current]} ${bar.time} ~ ${bar.last}`;
       tooltip.innerHTML = `
         <div class="tt-date">${label}</div>
         <div>시가 ${won(bar.open)}</div>
@@ -565,7 +668,10 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
     });
 
   const toggleMa = (n: number) =>
-    changeInd((v) => ({ ...v, ma: v.ma.includes(n) ? v.ma.filter((x) => x !== n) : [...v.ma, n].sort((a, b) => a - b) }));
+    changeInd((v) => ({
+      ...v,
+      ma: v.ma.includes(n) ? v.ma.filter((x) => x !== n) : [...v.ma, n].sort((a, b) => a - b),
+    }));
 
   // 뉴스·리포트·공시 표시는 데이터가 따로 도착하므로 바뀔 때마다 다시 그린다
   useEffect(() => {
@@ -589,7 +695,11 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
           ))}
         </div>
         <div className="chart-ind">
-          <button className={`chart-ind-btn ${menuOpen ? "on" : ""}`} onClick={() => setMenuOpen((v) => !v)} aria-expanded={menuOpen}>
+          <button
+            className={`chart-ind-btn ${menuOpen ? "on" : ""}`}
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-expanded={menuOpen}
+          >
             지표 ▾
           </button>
           {menuOpen && (
@@ -601,7 +711,11 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
                     <button
                       key={n}
                       className={ind.ma.includes(n) ? "on" : ""}
-                      style={{ borderColor: MA_COLORS[n], color: ind.ma.includes(n) ? "#00051e" : MA_COLORS[n], background: ind.ma.includes(n) ? MA_COLORS[n] : "none" }}
+                      style={{
+                        borderColor: MA_COLORS[n],
+                        color: ind.ma.includes(n) ? "#00051e" : MA_COLORS[n],
+                        background: ind.ma.includes(n) ? MA_COLORS[n] : "none",
+                      }}
                       onClick={() => toggleMa(n)}
                     >
                       {n}
@@ -622,7 +736,11 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
               ).map(([key, label]) => (
                 <label key={key} className="ind-row">
                   <span>
-                    <input type="checkbox" checked={ind[key]} onChange={() => changeInd((v) => ({ ...v, [key]: !v[key] }))} />{" "}
+                    <input
+                      type="checkbox"
+                      checked={ind[key]}
+                      onChange={() => changeInd((v) => ({ ...v, [key]: !v[key] }))}
+                    />{" "}
                     <b>{label}</b>
                   </span>
                   <p>{IND_HELP[key]}</p>
@@ -643,7 +761,11 @@ export default function StockChart({ prices, marks, rangeDays, onSelectDate }: P
       <div
         ref={containerRef}
         className="chart"
-        style={{ "--chart-extra": `${(ind.rsi ? 90 : 0) + (ind.stoch ? 90 : 0) + (ind.macd ? 100 : 0)}px` } as React.CSSProperties}
+        style={
+          {
+            "--chart-extra": `${(ind.rsi ? 90 : 0) + (ind.stoch ? 90 : 0) + (ind.macd ? 100 : 0)}px`,
+          } as React.CSSProperties
+        }
       />
       <div ref={tooltipRef} className="chart-tooltip" />
     </div>

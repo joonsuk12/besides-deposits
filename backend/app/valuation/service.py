@@ -333,6 +333,11 @@ def _collect_shares(db: Session, code: str, corp_code: str, years: list[int]) ->
 SPLIT_RATIOS = (2, 4, 5, 10, 20, 25, 50, 100)  # 흔한 액면분할 비율
 
 
+def split_adjusted_shares(db: Session, code: str) -> dict[int, float]:
+    """연도별 주식 수(액면분할을 지금 기준으로 맞춘 값). 타임머신 연습이 그 시점 PER·PBR을 계산할 때 쓴다."""
+    return _split_adjusted(repository.find_shares(db, code))
+
+
 def _split_adjusted(shares: dict[int, int]) -> dict[int, float]:
     """액면분할 전 해의 주식 수를 지금 기준으로 맞춘다.
 
