@@ -246,26 +246,3 @@ export async function saveMyRecord(input: MyRecordInput): Promise<MyRecord> {
   if (!res.ok) throw new Error(`저장 실패 (${res.status})`);
   return res.json();
 }
-
-// "오늘 왜 움직였지?": 크게 움직인 날과 같은 날 시장 지수·공시·투자자별 매매
-export type MoveDisclosure = { date: string; title: string; category: string; level: string; url: string; timing: string };
-export type BigMove = {
-  date: string;
-  change_pct: number;
-  volume_ratio: number | null;
-  index_name: string;
-  index_change_pct: number | null;
-  scope: "market" | "both" | "stock" | "unknown";
-  scope_text: string;
-  disclosures: MoveDisclosure[];
-  trend: { foreign: number; organ: number; individual: number } | null;
-  trend_text: string | null;
-};
-export type Moves = {
-  available: boolean;
-  message: string | null;
-  threshold_pct: number;
-  threshold_text: string | null;
-  moves: BigMove[];
-};
-export const fetchMoves = (code: string, days = 1095) => request<Moves>(`/moves/${code}?days=${days}`);
