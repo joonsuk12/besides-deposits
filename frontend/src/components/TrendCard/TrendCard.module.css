@@ -76,3 +76,7 @@
   color: var(--warn);
   fill: var(--warn);
 }
+
+.toggle {
+  margin-top: 8px;
+}

@@ -1,0 +1,95 @@
+/* 오른쪽에 붙는 패널. 차트를 가리지 않게 오른쪽 요약 칸 자리 위에 뜬다 */
+.drawer {
+  position: fixed;
+  top: var(--header-h);
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  width: min(440px, 100vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-left: 1px solid var(--line-strong);
+  box-shadow: -12px 0 32px var(--shadow);
+  animation: slide-in 0.18s ease-out;
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 14px 16px 8px;
+}
+
+.title {
+  font-size: var(--fs-lg);
+}
+
+.price {
+  margin-top: 2px;
+  font-size: var(--fs-md);
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 16px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 16px 16px;
+}
+
+.stack {
+  display: grid;
+  gap: 10px;
+}
+
+.muted {
+  color: var(--sub);
+  font-size: var(--fs-md);
+}
+
+.foot {
+  margin: 0;
+  padding: 8px 16px;
+  border-top: 1px solid var(--line);
+  color: var(--sub);
+  font-size: var(--fs-sm);
+}
+
+/* 휴대폰: 아래에서 올라오는 시트 */
+@media (max-width: 720px) {
+  .drawer {
+    top: auto;
+    left: 0;
+    width: 100%;
+    height: 72vh;
+    border-left: 0;
+    border-top: 1px solid var(--line-strong);
+    border-radius: var(--r-md) var(--r-md) 0 0;
+    box-shadow: 0 -12px 32px var(--shadow);
+    animation-name: slide-up;
+  }
+
+  @keyframes slide-up {
+    from {
+      transform: translateY(24px);
+      opacity: 0;
+    }
+  }
+}

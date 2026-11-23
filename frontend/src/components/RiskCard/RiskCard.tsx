@@ -1,7 +1,7 @@
 "use client";
 // 위험 신호 카드: 초보가 놓치기 쉬운 함정을 신호등(🔴🟡🟢)으로. 문제가 있는 것부터, 문제 없는 항목도 보여준다.
 // 항목을 누르면 왜 봐야 하는지와 근거(공시 원문 링크·연도별 숫자)가 펼쳐진다.
-// 맨 아래 질문에 답하면 마이데이터(/mydata)에 그때 상황과 함께 저장된다.
+// 맨 아래 "내 생각 기록하기"를 누르면 질문이 펼쳐지고, 답하면 마이데이터(/mydata)에 그때 상황과 함께 저장된다.
 
 import { useEffect, useState } from "react";
 
@@ -27,6 +27,7 @@ export default function RiskCard({ code }: { code: string }) {
   const [memo, setMemo] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [asking, setAsking] = useState(false); // 질문 칸은 눌렀을 때만 펼친다 (카드가 길어지지 않게)
 
   useEffect(() => {
     setR(null);
@@ -36,8 +37,11 @@ export default function RiskCard({ code }: { code: string }) {
     setPicked(null);
     setMemo("");
     setSaved(false);
+    setAsking(false);
     setLast(null);
-    fetchRisk(code).then(setR).catch(() => setFailed(true));
+    fetchRisk(code)
+      .then(setR)
+      .catch(() => setFailed(true));
     fetchMyRecords(KIND, code, 1)
       .then((rows) => setLast(rows[0] ?? null))
       .catch(() => {});
@@ -95,7 +99,11 @@ export default function RiskCard({ code }: { code: string }) {
       <ul className={styles["list"]}>
         {shown.map((c) => (
           <li key={c.key} className={styles[c.status]}>
-            <button className={styles["row"]} onClick={() => setOpen(open === c.key ? null : c.key)} aria-expanded={open === c.key}>
+            <button
+              className={styles["row"]}
+              onClick={() => setOpen(open === c.key ? null : c.key)}
+              aria-expanded={open === c.key}
+            >
               <span className={styles["icon"]}>{ICON[c.status]}</span>
               <span className={styles["body"]}>
                 <span className={styles["title"]}>{c.title}</span>
@@ -134,34 +142,49 @@ export default function RiskCard({ code }: { code: string }) {
       )}
 
       <div className={styles["ask"]}>
-        <p className={styles["q"]}>📝 {QUESTION}</p>
-        {last && (
-          <p className={styles["muted"]}>
-            {saved ? "저장했어요. " : ""}지난 답({last.created_at.slice(0, 10)}): <b>{last.answer_label}</b>
-            {last.memo && ` — “${last.memo}”`}
-          </p>
+        {!asking && (
+          <button className="ui-btn-ghost" onClick={() => setAsking(true)}>
+            📝 내 생각 기록하기{last ? ` · 지난 답: ${last.answer_label}` : ""}
+          </button>
         )}
-        <div className={styles["chips"]}>
-          {ANSWERS.map((a) => (
-            <button key={a.key} className={`ui-chip ${picked === a.key ? "on" : ""}`} onClick={() => setPicked(a.key)}>
-              {a.label}
-            </button>
-          ))}
-        </div>
-        {picked && (
-          <div className={styles["memo"]}>
-            <input
-              value={memo}
-              maxLength={500}
-              onChange={(e) => setMemo(e.target.value)}
-              placeholder="한 줄 메모 (선택) — 예: 전환사채가 몇 번 더 나오는지 볼래요"
-            />
-            <button className="ui-btn" onClick={save} disabled={saving}>
-              {saving ? "저장 중…" : "기록하기"}
-            </button>
-          </div>
+        {asking && (
+          <>
+            <p className={styles["q"]}>📝 {QUESTION}</p>
+            {last && (
+              <p className={styles["muted"]}>
+                {saved ? "저장했어요. " : ""}지난 답({last.created_at.slice(0, 10)}): <b>{last.answer_label}</b>
+                {last.memo && ` — “${last.memo}”`}
+              </p>
+            )}
+            <div className={styles["chips"]}>
+              {ANSWERS.map((a) => (
+                <button
+                  key={a.key}
+                  className={`ui-chip ${picked === a.key ? "on" : ""}`}
+                  onClick={() => setPicked(a.key)}
+                >
+                  {a.label}
+                </button>
+              ))}
+            </div>
+            {picked && (
+              <div className={styles["memo"]}>
+                <input
+                  value={memo}
+                  maxLength={500}
+                  onChange={(e) => setMemo(e.target.value)}
+                  placeholder="한 줄 메모 (선택) — 예: 전환사채가 몇 번 더 나오는지 볼래요"
+                />
+                <button className="ui-btn" onClick={save} disabled={saving}>
+                  {saving ? "저장 중…" : "기록하기"}
+                </button>
+              </div>
+            )}
+            <p className={styles["muted"]}>
+              답은 이 PC의 마이데이터에만 쌓여요. 나중에 내 생각과 실제 결과를 비교해 볼 수 있어요.
+            </p>
+          </>
         )}
-        <p className={styles["muted"]}>답은 이 PC의 마이데이터에만 쌓여요. 나중에 내 생각과 실제 결과를 비교해 볼 수 있어요.</p>
       </div>
     </div>
   );

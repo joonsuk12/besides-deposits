@@ -44,14 +44,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 구조 (여러 파일을 봐야 알 수 있는 것)
 
 **백엔드** (`backend/app`, FastAPI + SQLAlchemy 2 + SQLite `backend/data/stroll.db`)
-- 도메인: `stock`(종목·주가·관심종목) `report`(증권사 리포트) `news` `disclosure`(OpenDART 공시) `valuation`(PER·PBR·연간 재무) `trend`(투자자별 매매) `etf` `risk`(위험 신호, 테이블 없이 다른 도메인 조합) `move`(크게 움직인 날·시장 지수) `mydata`(화면 질문에 대한 사용자 답 기록).
+- 도메인: `stock`(종목·주가·관심종목) `report`(증권사 리포트) `news` `disclosure`(OpenDART 공시) `valuation`(PER·PBR·연간 재무) `trend`(투자자별 매매) `etf` `risk`(위험 신호, 테이블 없이 다른 도메인 조합) `mydata`(화면 질문에 대한 사용자 답 기록).
 - 새 도메인을 만들면 두 곳에 등록한다: `app/main.py`의 `include_router`, `app/core/database.py`의 `create_tables()` 안 models import (테이블은 서버 시작 때 없는 것만 만들고, 컬럼 변경은 반영되지 않는다).
 - **외부 데이터는 "조회 시점 수집 + 캐시" 패턴**: service가 `core/fetch_log.is_fresh(db, key, 분)`으로 신선도를 보고, 오래됐으면 client로 받아 `db.merge`로 저장한 뒤 `mark_fetched`. 외부 실패는 try/except로 삼키고 저장된 데이터로 응답한다 (화면이 깨지지 않게). 응답 모양이 자주 바뀌는 외부 JSON은 `raw_json` 컬럼에 통째로 두고 service에서 화면용으로 바꾼다.
 - 외부 출처 (모두 무료): 네이버 증권 내부 API(`core/naver.get_json`, 요청 간격 0.5초, 일부는 `MOBILE_BASE_URL`), OpenDART(`DART_API_KEY`), pykrx(KRX 로그인 필요 → `core/krx.use_login()`이 `.env`의 `KRX_ID`·`KRX_PW`를 환경 변수로 넘긴 다음 import해야 한다), FinanceDataReader(종목 목록·지수·주가 대안), ETF 운용사 홈페이지(TIME).
-- 초보용 분류는 유료 AI 없이 규칙으로: 공시는 `disclosure/keypoints.py`의 `RULES`(위에서부터 첫 일치, `category`·`level`), 리포트는 `report/keypoints.py`. 위험 신호·크게 움직인 날도 이 분류 결과를 재사용한다.
+- 초보용 분류는 유료 AI 없이 규칙으로: 공시는 `disclosure/keypoints.py`의 `RULES`(위에서부터 첫 일치, `category`·`level`), 리포트는 `report/keypoints.py`. 위험 신호도 이 분류 결과를 재사용한다.
 
 **프론트** (`frontend/src`, Next.js 16 App Router + React 19, 전부 client component + CSS Modules)
 - 화면: `/` 홈(관심종목 오늘 소식), `/[code]` 종목 차트 화면(중심), `/watchlist`, `/reports`, `/guide`, `/intro`.
 - 백엔드 호출과 타입은 모두 `lib/api.ts` 한 파일 (`NEXT_PUBLIC_API_URL`, 기본 `http://localhost:8100`).
-- 차트는 `components/StockChart.tsx`(lightweight-charts 5, 일→주→월→연봉 자동 전환, 마커 N/R/D/⚡, 지표 계산은 `lib/indicators.ts`). TradingView 로고는 끄고 출처 링크를 따로 둔다(라이선스 조건).
+- 차트는 `components/StockChart.tsx`(lightweight-charts 5, 일→주→월→연봉 자동 전환, 마커 N/R/D, 지표 계산은 `lib/indicators.ts`). TradingView 로고는 끄고 출처 링크를 따로 둔다(라이선스 조건).
 - 종목 화면은 ETF(`stock.market === "ETF"`)면 회사용 카드(PER·위험 신호·공시·리포트) 대신 `EtfCard`를 보여준다.

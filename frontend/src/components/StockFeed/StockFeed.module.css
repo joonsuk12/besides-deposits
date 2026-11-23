@@ -1,0 +1,45 @@
+.feed {
+  margin-top: 16px;
+  padding: 4px 16px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+/* EtfCard·StockInfoCard와 같은 모양의 탭 */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin: 12px 0;
+  padding: 3px;
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+}
+
+.tabs button {
+  flex: 1;
+  padding: 6px 4px;
+  font-size: var(--fs-md);
+  color: var(--sub);
+  background: none;
+  border: 0;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tabs button.on {
+  color: var(--bg);
+  background: var(--mint);
+  font-weight: 700;
+}
+
+.desc {
+  margin: 0 0 4px;
+  color: var(--sub);
+  font-size: var(--fs-md);
+}
+
+.stack {
+  display: grid;
+  gap: 10px;
+}
