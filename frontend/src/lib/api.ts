@@ -77,8 +77,7 @@ async function request<T>(path: string, method = "GET"): Promise<T> {
 export const fetchStocks = () => request<Stock[]>("/stocks");
 export const fetchStock = (code: string) => request<Stock>(`/stocks/${code}`);
 export const fetchWatchlist = () => request<WatchlistItem[]>("/stocks/watchlist");
-export const fetchPrices = (code: string, days: number) =>
-  request<Price[]>(`/stocks/${code}/prices?days=${days}`);
+export const fetchPrices = (code: string, days: number) => request<Price[]>(`/stocks/${code}/prices?days=${days}`);
 export const addWatch = (code: string) => request<Stock>(`/stocks/${code}/watch`, "PUT");
 export const removeWatch = (code: string) => request<Stock>(`/stocks/${code}/watch`, "DELETE");
 
@@ -135,7 +134,13 @@ export type Overview = {
   trend_comment: string | null;
 };
 
-export type TrendDay = { date: string; foreign: number; organ: number; individual: number; foreign_ratio: number | null };
+export type TrendDay = {
+  date: string;
+  foreign: number;
+  organ: number;
+  individual: number;
+  foreign_ratio: number | null;
+};
 export type Trend = {
   available: boolean;
   message: string | null;
@@ -172,11 +177,10 @@ export type Etf = {
 export const fetchEtf = (code: string) => request<Etf>(`/etf/${code}`);
 
 export const fetchOverview = (code: string) => request<Overview>(`/valuation/stock/${code}/overview`);
-export const fetchValuation =(code: string) => request<Valuation>(`/valuation/stock/${code}`);
+export const fetchValuation = (code: string) => request<Valuation>(`/valuation/stock/${code}`);
 
 // 종목 로고 (NewStocks와 같은 출처). 없는 종목은 회색 원으로 보인다.
-export const stockLogoUrl = (code: string) =>
-  `https://file.alphasquare.co.kr/media/images/stock_logo/kr/${code}.png`;
+export const stockLogoUrl = (code: string) => `https://file.alphasquare.co.kr/media/images/stock_logo/kr/${code}.png`;
 
 // "시작하기": 관심 종목이 있으면 그 종목 차트로, 없으면 삼성전자로 간다.
 export async function goToStart() {
@@ -214,7 +218,14 @@ export const fetchStockDisclosures = (code: string, days = 180) =>
 
 export type RiskEvidence = { date: string | null; text: string; url: string | null };
 export type RiskStatus = "ok" | "caution" | "danger";
-export type RiskCheck = { key: string; title: string; status: RiskStatus; summary: string; why: string; evidence: RiskEvidence[] };
+export type RiskCheck = {
+  key: string;
+  title: string;
+  status: RiskStatus;
+  summary: string;
+  why: string;
+  evidence: RiskEvidence[];
+};
 export type Risk = {
   available: boolean;
   message: string | null;
@@ -244,5 +255,80 @@ export async function saveMyRecord(input: MyRecordInput): Promise<MyRecord> {
     body: JSON.stringify(input),
   });
   if (!res.ok) throw new Error(`저장 실패 (${res.status})`);
+  return res.json();
+}
+
+// 타임머신 연습장: 과거 어느 날까지의 정보만 보고 6개월 뒤를 예상해 본다
+export type Option = { key: string; label: string };
+export type PracticeFact = { label: string; value: string; tone: string; hint: string | null };
+export type PracticeYear = {
+  year: number;
+  revenue: number | null;
+  operating_profit: number | null;
+  net_income: number | null;
+};
+export type PracticeQuestion = {
+  available: boolean;
+  message: string | null;
+  code: string | null;
+  name: string | null;
+  market: string | null;
+  industry: string | null;
+  as_of: string | null;
+  horizon_label: string;
+  prices: Price[];
+  price_facts: PracticeFact[];
+  value_facts: PracticeFact[];
+  years: PracticeYear[];
+  guesses: Option[];
+  reasons: Option[];
+};
+export type PracticeAnswer = {
+  name: string;
+  as_of: string;
+  end_date: string;
+  guess_label: string;
+  outcome: "up" | "flat" | "down";
+  outcome_label: string;
+  correct: boolean;
+  return_pct: number;
+  index_name: string;
+  index_return_pct: number | null;
+  max_up_pct: number;
+  max_down_pct: number;
+  comment: string;
+  prices: Price[];
+};
+export type PracticeHistory = {
+  total: number;
+  correct: number;
+  by_reason: { key: string; label: string; total: number; correct: number }[];
+  items: {
+    created_at: string;
+    code: string | null;
+    name: string;
+    as_of: string;
+    guess_label: string;
+    outcome_label: string;
+    correct: boolean;
+    return_pct: number;
+  }[];
+};
+export const fetchPracticeQuestion = (code?: string) =>
+  request<PracticeQuestion>(`/practice/question${code ? `?code=${code}` : ""}`);
+export const fetchPracticeHistory = () => request<PracticeHistory>("/practice/history");
+export async function submitPracticeAnswer(input: {
+  code: string;
+  as_of: string;
+  guess: string;
+  reasons: string[];
+  memo: string;
+}): Promise<PracticeAnswer> {
+  const res = await fetch(`${API_URL}/practice/answer`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(`제출 실패 (${res.status})`);
   return res.json();
 }

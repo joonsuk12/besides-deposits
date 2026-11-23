@@ -70,3 +70,12 @@ def find_latest_price_date(db: Session, code: str) -> date | None:
 
 def save_prices(db: Session, prices: list[DailyPrice]) -> None:
     db.add_all(prices)
+
+
+def find_codes_with_prices_before(db: Session, before: date) -> list[str]:
+    """before 이전부터 주가가 저장돼 있는 종목코드들 (타임머신 연습 문제 후보)."""
+    return list(
+        db.scalars(
+            select(DailyPrice.stock_code).group_by(DailyPrice.stock_code).having(func.min(DailyPrice.date) <= before)
+        )
+    )

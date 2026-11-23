@@ -1,0 +1,265 @@
+.page {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 20px 16px 32px;
+}
+
+.page h1 {
+  margin: 0;
+  font-size: var(--fs-2xl);
+  color: var(--mint);
+}
+
+.lead {
+  margin: 6px 0 16px;
+  max-width: 760px;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+.muted {
+  margin: 6px 0 0;
+  color: var(--sub);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+}
+
+/* 왼쪽 문제(차트·숫자), 오른쪽 답·기록 */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 20px;
+  align-items: start;
+}
+
+.qhead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.qhead > div {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.date {
+  padding: 2px 10px;
+  border-radius: var(--r-pill);
+  background: var(--mint-soft);
+  color: var(--mint);
+  font-weight: 700;
+}
+
+.name {
+  font-size: var(--fs-xl);
+}
+
+.sub {
+  color: var(--sub);
+  font-size: var(--fs-md);
+}
+
+.chart {
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  min-height: 420px;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px 24px;
+  margin-top: 14px;
+}
+
+.facts h3,
+.side h3 {
+  margin: 10px 0 6px;
+  font-size: var(--fs-base);
+}
+
+.facts dl {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.facts dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-md);
+}
+
+.facts dt {
+  color: var(--text-2);
+}
+
+.facts dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.q {
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--sub);
+  font-size: var(--fs-xs);
+  cursor: help;
+}
+
+.years {
+  width: 100%;
+  margin-top: 8px;
+  border-collapse: collapse;
+  font-size: var(--fs-md);
+  font-variant-numeric: tabular-nums;
+}
+
+.years th,
+.years td {
+  padding: 4px 2px;
+  text-align: right;
+  border-bottom: 1px solid var(--line);
+}
+
+.years th {
+  font-weight: 400;
+  color: var(--sub);
+  font-size: var(--fs-sm);
+}
+
+.years td:first-child {
+  text-align: left;
+  color: var(--text-2);
+}
+
+.side {
+  display: grid;
+  gap: 16px;
+  position: sticky;
+  top: calc(var(--header-h) + 12px);
+}
+
+.side h2 {
+  margin: 0 0 8px;
+  font-size: var(--fs-lg);
+}
+
+.guesses,
+.reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.memo {
+  width: 100%;
+  margin: 12px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-md);
+}
+
+.side :global(.ui-btn:disabled) {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.result {
+  border-color: var(--mint);
+}
+
+.big {
+  margin: 0;
+  font-size: var(--fs-2xl);
+  font-variant-numeric: tabular-nums;
+}
+
+.rlist {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: var(--fs-md);
+  line-height: 1.7;
+}
+
+.comment {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--mint);
+  background: var(--mint-soft);
+  font-size: var(--fs-md);
+  line-height: 1.6;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.score {
+  margin: 0;
+  font-size: var(--fs-base);
+}
+
+.score b {
+  color: var(--mint);
+}
+
+.stats,
+.recent {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: var(--fs-md);
+}
+
+.stats li,
+.recent li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.recent li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+}
+
+.rname {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 좁은 화면: 한 줄에 하나 (답 칸이 차트 아래로) */
+@media (max-width: 960px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .side {
+    position: static;
+  }
+}
