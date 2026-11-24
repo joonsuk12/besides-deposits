@@ -260,12 +260,25 @@ export async function saveMyRecord(input: MyRecordInput): Promise<MyRecord> {
 
 // 타임머신 연습장: 과거 어느 날까지의 정보만 보고 6개월 뒤를 예상해 본다
 export type Option = { key: string; label: string };
-export type PracticeFact = { label: string; value: string; tone: string; hint: string | null };
+export type PracticeFact = { label: string; value: string; tone: string; hint: string | null; key: boolean };
 export type PracticeYear = {
   year: number;
   revenue: number | null;
   operating_profit: number | null;
   net_income: number | null;
+  revenue_growth: number | null;
+  op_margin: number | null;
+  roe: number | null;
+  per: number | null;
+  pbr: number | null;
+};
+export type SectorGuide = {
+  name: string;
+  focus: "per" | "pbr" | "both" | "none";
+  title: string;
+  reason: string;
+  also: string[];
+  caution: string | null;
 };
 export type PracticeQuestion = {
   available: boolean;
@@ -277,8 +290,14 @@ export type PracticeQuestion = {
   as_of: string | null;
   horizon_label: string;
   prices: Price[];
+  sector: SectorGuide | null;
+  market_facts: PracticeFact[];
   price_facts: PracticeFact[];
   value_facts: PracticeFact[];
+  growth_facts: PracticeFact[];
+  krx_sector: string | null;
+  sector_facts: PracticeFact[];
+  rate_facts: PracticeFact[];
   years: PracticeYear[];
   guesses: Option[];
   reasons: Option[];
@@ -299,10 +318,13 @@ export type PracticeAnswer = {
   comment: string;
   prices: Price[];
 };
+export type PracticeStat = { key: string; label: string; total: number; correct: number };
 export type PracticeHistory = {
   total: number;
   correct: number;
-  by_reason: { key: string; label: string; total: number; correct: number }[];
+  by_guess: PracticeStat[];
+  by_reason: PracticeStat[];
+  lines: string[];
   items: {
     created_at: string;
     code: string | null;
@@ -332,3 +354,29 @@ export async function submitPracticeAnswer(input: {
   if (!res.ok) throw new Error(`제출 실패 (${res.status})`);
   return res.json();
 }
+
+// 마이데이터 가공: 위험 신호를 보고 남긴 생각과 그 뒤 주가
+export type RiskReactionItem = {
+  id: number;
+  created_at: string;
+  stock_code: string;
+  name: string;
+  answer: string;
+  answer_label: string;
+  memo: string;
+  flagged: string[];
+  close_then: number | null;
+  close_then_date: string | null;
+  close_now: number | null;
+  close_now_date: string | null;
+  change_pct: number | null;
+  days: number | null;
+};
+export type MyInsights = {
+  lines: string[];
+  risk_items: RiskReactionItem[];
+  risk_groups: { answer: string; label: string; count: number; avg_change_pct: number | null; counted: number }[];
+  total_records: number;
+};
+export const fetchMyInsights = () => request<MyInsights>("/mydata/insights");
+export const MYDATA_EXPORT_URL = `${API_URL}/mydata/export`;

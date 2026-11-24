@@ -72,7 +72,7 @@
 
 .facts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* 2×2: 시장·주가 / 가격 수준·성장 */
   gap: 12px 24px;
   margin-top: 14px;
 }
@@ -254,6 +254,12 @@
 }
 
 /* 좁은 화면: 한 줄에 하나 (답 칸이 차트 아래로) */
+@media (max-width: 720px) {
+  .facts {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 960px) {
   .layout {
     grid-template-columns: 1fr;
@@ -262,4 +268,99 @@
   .side {
     position: static;
   }
+}
+
+.more-link {
+  float: right;
+  color: var(--mint);
+  font-size: var(--fs-sm);
+  font-weight: 400;
+}
+
+/* 업종 카드: 이 업종에서 무엇을 먼저 보나 */
+.sector {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--mint);
+  border-radius: var(--r-md);
+  background: var(--mint-soft);
+}
+
+.sector-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.sector-name {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+}
+
+.focus {
+  padding: 2px 10px;
+  border-radius: var(--r-pill);
+  background: var(--mint);
+  color: var(--bg);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.sector-title {
+  margin: 8px 0 2px;
+  font-size: var(--fs-base);
+  font-weight: 700;
+}
+
+.sector-reason {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-md);
+  line-height: 1.6;
+}
+
+.sector-sub {
+  margin: 8px 0 2px;
+  font-size: var(--fs-md);
+  font-weight: 700;
+}
+
+.also {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-2);
+  font-size: var(--fs-md);
+  line-height: 1.6;
+}
+
+.caution {
+  margin: 8px 0 0;
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  background: var(--warn-soft);
+  color: var(--text);
+  font-size: var(--fs-md);
+  line-height: 1.55;
+}
+
+.star {
+  color: var(--warn);
+}
+
+.facts dl > div.keyfact {
+  margin: 0 -6px;
+  padding: 4px 6px;
+  border-radius: var(--r-sm);
+  background: var(--warn-soft);
+}
+
+.years-wrap {
+  margin-top: 16px;
+  overflow-x: auto;
+}
+
+.years-wrap h3 {
+  margin: 0 0 6px;
+  font-size: var(--fs-base);
 }

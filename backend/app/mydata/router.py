@@ -3,13 +3,14 @@
 - POST /mydata                               답 하나 저장
 - GET  /mydata?kind=risk_reaction&stock_code=005930&limit=5   기록 조회 (최신순)
 - GET  /mydata/export                        전체 기록을 JSON으로 (나중에 가공·백업용)
+- GET  /mydata/insights                      기록 가공: 위험 신호에 남긴 생각과 그 뒤 주가, 한 줄 돌아보기
 """
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.mydata import service
-from app.mydata.schemas import MyRecordCreate, MyRecordResponse
+from app.mydata.schemas import InsightsResponse, MyRecordCreate, MyRecordResponse
 
 router = APIRouter(prefix="/mydata", tags=["mydata"])
 
@@ -32,3 +33,8 @@ def find(
 @router.get("/export", response_model=list[MyRecordResponse])
 def export(db: Session = Depends(get_db)):
     return service.find(db, None, None, None)
+
+
+@router.get("/insights", response_model=InsightsResponse)
+def insights(db: Session = Depends(get_db)):
+    return service.insights(db)
