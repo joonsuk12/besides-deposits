@@ -59,6 +59,9 @@ class QuestionResponse(BaseModel):
     price_facts: list[Fact] = []
     value_facts: list[Fact] = []  # 그 시점 PER·PBR (그때 나와 있던 사업보고서 기준) + 지난 해들 범위
     growth_facts: list[Fact] = []  # 성장·수익성 (매출 성장, 영업이익률, ROE)
+    krx_sector: str | None = None  # KRX 업종 지수 이름 (예: 전기전자)
+    sector_facts: list[Fact] = []  # 그날 업종·시장 전체 PER·PBR과 이 종목 비교
+    rate_facts: list[Fact] = []  # 그날 국고채 금리와 1년 변화
     years: list[YearRow] = []  # 그때 나와 있던 연간 실적 (최근 5년)
     guesses: list[Option] = []
     reasons: list[Option] = []

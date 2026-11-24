@@ -42,12 +42,16 @@ def fetch_stock_list() -> list[tuple[str, str, str]]:
 
 def fetch_daily_prices(code: str, start: date, end: date) -> list[PriceRow]:
     """일봉을 가져온다. pykrx가 실패하거나 비어 있으면 FinanceDataReader로 다시 시도한다."""
-    try:
-        rows = _fetch_from_pykrx(code, start, end)
-        if rows:
-            return rows
-    except Exception as e:  # KRX 사이트가 바뀌면 pykrx가 깨질 수 있다
-        print(f"  pykrx 실패({code}): {e!r} → FinanceDataReader로 재시도")
+    from app.core import krx
+
+    if not krx.is_paused():  # KRX가 막혀 쉬는 중이면 바로 FinanceDataReader로
+        try:
+            rows = _fetch_from_pykrx(code, start, end)
+            if rows:
+                return rows
+        except Exception as e:  # KRX 사이트가 바뀌거나 IP가 잠깐 막히면 pykrx가 깨진다
+            krx.pause(repr(e)[:80])
+            print(f"  pykrx 실패({code}): {e!r} → FinanceDataReader로 재시도")
     return _fetch_from_fdr(code, start, end)
 
 

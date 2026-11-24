@@ -155,9 +155,14 @@ def _to_response(d: dict) -> EtfResponse:
 
 def _krx_rows(code: str) -> list[dict]:
     """KRX가 로그인 실패·사이트 변경으로 안 돼도 운용사 홈페이지로 넘어가게 오류를 여기서 삼킨다."""
+    from app.core import krx
+
+    if krx.is_paused():
+        return []
     try:
         return client.fetch_krx_pdf(code)
     except Exception as e:
+        krx.pause(repr(e)[:80])
         print(f"  KRX 구성종목 실패({code}): {e!r} → 운용사 홈페이지로")
         return []
 

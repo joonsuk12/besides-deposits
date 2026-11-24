@@ -17,11 +17,11 @@ from datetime import date, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
-from app.core import fetch_log
+from app.core import fetch_log, krx
 from app.mydata import repository as mydata_repository
 from app.mydata.models import MyRecord
 from app.practice import client, repository
-from app.practice.models import IndexPrice
+from app.practice.models import BondYield, IndexPrice, IndexValuation, SectorMember
 from app.practice.schemas import (
     AnswerRequest,
     AnswerResponse,
@@ -100,6 +100,9 @@ def _question(db: Session, code: str, prices: list, i: int) -> QuestionResponse:
     # 그때 적자였으면 PER 대신 PBR을 보라고 안내가 바뀐다 (focus.decide는 eps 부호만 본다)
     guide = focus.decide(industry, last.net_income if last and last.net_income is not None else None)
     years = _year_rows(db, code, annual, prices)
+    stock_per, stock_pbr = _stock_multiples(db, code, annual, prices[i].close)
+    sector_facts, krx_sector = _sector_facts(db, code, stock.market, as_of, stock_per, stock_pbr, guide.focus)
+    rate_key = any("금리" in a for a in guide.also)  # 업종 가이드가 금리를 "함께 볼 것"으로 꼽으면 ⭐
     return QuestionResponse(
         available=True,
         code=code,
@@ -120,6 +123,9 @@ def _question(db: Session, code: str, prices: list, i: int) -> QuestionResponse:
         price_facts=_price_facts(prices, i),
         value_facts=_value_facts(db, code, annual, years, prices[i].close, guide.focus),
         growth_facts=_growth_facts(years, guide.focus),
+        krx_sector=krx_sector,
+        sector_facts=sector_facts,
+        rate_facts=_rate_facts(db, as_of, rate_key),
         years=years,
         guesses=GUESSES,
         reasons=REASONS,
@@ -270,6 +276,17 @@ def _year_rows(db: Session, code: str, annual: list, prices: list) -> list[YearR
     return rows[-5:]
 
 
+def _stock_multiples(db: Session, code: str, annual: list, close: int) -> tuple[float | None, float | None]:
+    """그날 종가 기준 PER·PBR (그때 나와 있던 마지막 사업보고서). 적자면 PER은 None."""
+    if not annual:
+        return None, None
+    last = annual[-1]
+    shares = valuation_service.split_adjusted_shares(db, code).get(last.year)
+    per = close * shares / last.net_income if shares and last.net_income and last.net_income > 0 else None
+    pbr = close * shares / last.equity if shares and last.equity and last.equity > 0 else None
+    return per, pbr
+
+
 def _value_facts(db: Session, code: str, annual: list, years: list[YearRow], close: int, sector_focus: str) -> list[Fact]:
     facts: list[Fact] = []
     if not annual:
@@ -360,6 +377,230 @@ def _growth_facts(years: list[YearRow], sector_focus: str) -> list[Fact]:
                 tone="down" if last.roe < 0 else "",
                 key=sector_focus == "pbr",
                 hint="자기 돈(자본)으로 1년에 몇 %를 벌었는지예요. 자산을 보는 업종(PBR)에서는 ROE가 높을수록 PBR도 높게 매겨져요.",
+            )
+        )
+    return facts
+
+
+# ── 업종 PER·PBR, 금리 (KRX) ─────────────────────────────
+
+# KRX 업종 지수 (규모·우량 같은 묶음은 빼고 업종만). 종목이 여러 개에 속하면 가장 좁은 것을 쓴다.
+SECTOR_INDEXES = (
+    [str(c) for c in range(1005, 1027) if c not in (1022, 1023)]  # 코스피 음식료·담배(1005) ~ 일반서비스(1026)
+    + ["2012", "2026", "2027", "2029", "2031", "2037", "2056", "2058", "2062", "2063", "2065", "2066",
+       "2067", "2068", "2070", "2072", "2074", "2075", "2077", "2114", "2118"]  # 코스닥 업종
+)
+KRX_MARKET_INDEX = {"KOSPI": ("1001", "코스피"), "KOSDAQ": ("2001", "코스닥")}
+SECTOR_REFRESH_MIN = 60 * 24 * 30  # 업종 구성은 한 달에 한 번
+BONDS = (("국고채3년", "국고채 3년"), ("국고채10년", "국고채 10년"))
+
+
+def _ensure_sectors(db: Session) -> None:
+    key, try_key = "krx-sectors", "krx-sectors-try"
+    if fetch_log.is_fresh(db, key, SECTOR_REFRESH_MIN) or fetch_log.is_fresh(db, try_key, 60 * 6):
+        return  # 한 달 안에 성공했거나, 6시간 안에 시도했다 실패했으면 넘어간다
+    if krx.is_paused():
+        return
+    fetch_log.mark_fetched(db, try_key)
+    db.commit()
+    try:
+        rows = []
+        for code in SECTOR_INDEXES:
+            members = client.fetch_index_members(code)
+            if not members:
+                continue
+            name = client.fetch_index_name(code)
+            rows += [SectorMember(index_code=code, stock_code=m, index_name=name, size=len(members)) for m in members]
+        if rows:
+            repository.replace_sector_members(db, rows)
+        fetch_log.mark_fetched(db, key)
+        db.commit()
+    except Exception as e:  # KRX 로그인·사이트 문제면 업종 숫자만 빠진다
+        db.rollback()
+        print(f"  KRX 업종 구성 수집 실패: {e!r}")
+
+
+HISTORY_START = date(2015, 1, 1)  # 업종 PER·PBR, 금리는 이날부터 오늘까지 한 번에 받아 둔다 (문제 날짜가 무작위라서)
+RETRY_MIN = 30  # 받기에 실패하면 30분 동안은 다시 시도하지 않는다 (KRX는 로그인을 너무 자주 하면 잠깐 막는다)
+
+
+def _covers(rows: list, start: date, end: date) -> bool:
+    """[start, end] 구간이 빈 곳 없이 저장돼 있나. 거래일은 달력 날짜의 약 68%라 55%를 기준으로,
+    끝(문제 날짜) 근처가 비어 있으면 옛날 값을 잘못 쓰게 되므로 마지막 값이 10일 안이어야 한다."""
+    return len(rows) >= (end - start).days * 0.55 and rows[-1].date >= end - timedelta(days=10)
+
+
+def _valuation_series(db: Session, index_code: str, start: date, end: date) -> list:
+    rows = repository.find_index_valuation(db, index_code, start, end)
+    if not _covers(rows, start, end) and _fetch_index_history(db, index_code):
+        rows = repository.find_index_valuation(db, index_code, start, end)
+    return rows if _covers(rows, start, end) or rows and rows[-1].date >= end - timedelta(days=10) else []
+
+
+def _bond_series(db: Session, kind: str, start: date, end: date) -> list:
+    rows = repository.find_bond_yields(db, kind, start, end)
+    if not _covers(rows, start, end) and _fetch_bond_history(db, kind):
+        rows = repository.find_bond_yields(db, kind, start, end)
+    return rows if rows and rows[-1].date >= end - timedelta(days=10) else []
+
+
+def _fetch_index_history(db: Session, index_code: str) -> bool:
+    key = f"krx-valuation-try:{index_code}"
+    if krx.is_paused() or fetch_log.is_fresh(db, key, RETRY_MIN):
+        return False
+    fetch_log.mark_fetched(db, key)
+    db.commit()
+    try:
+        fetched = client.fetch_index_valuation(index_code, HISTORY_START, date.today())
+        repository.save_index_valuation(
+            db,
+            [IndexValuation(index_code=index_code, date=d, per=per, pbr=pbr, dividend_yield=dy) for d, per, pbr, dy in fetched],
+        )
+        db.commit()
+        return bool(fetched)
+    except Exception as e:
+        db.rollback()
+        print(f"  KRX 지수 PER·PBR 수집 실패({index_code}): {e!r}")
+        return False
+
+
+def _fetch_bond_history(db: Session, kind: str) -> bool:
+    key = f"krx-bond-try:{kind}"
+    if krx.is_paused() or fetch_log.is_fresh(db, key, RETRY_MIN):
+        return False
+    fetch_log.mark_fetched(db, key)
+    db.commit()
+    try:
+        fetched = client.fetch_bond_yields(kind, HISTORY_START, date.today())
+        repository.save_bond_yields(db, [BondYield(kind=kind, date=d, value=v) for d, v in fetched])
+        db.commit()
+        return bool(fetched)
+    except Exception as e:
+        db.rollback()
+        print(f"  국고채 금리 수집 실패({kind}): {e!r}")
+        return False
+
+
+def refresh_market_history(db: Session) -> int:
+    """매일 수집(app.daily)용: 업종 구성, 코스피·코스닥·업종 지수 PER·PBR, 국고채 금리를 10년치 받아 둔다.
+    문제를 낼 때 KRX에 묻지 않아도 되게 미리 채워 두는 것이다. 받은 지수·금리 개수를 돌려준다."""
+    _ensure_sectors(db)
+    count = 0
+    for code in [c for c, _ in KRX_MARKET_INDEX.values()] + SECTOR_INDEXES:
+        if krx.is_paused():  # 한 번 실패하면 나머지는 다음에 (KRX가 IP를 더 오래 막지 않게)
+            return count
+        if not fetch_log.is_fresh(db, f"krx-valuation-try:{code}", 60 * 12) and _fetch_index_history(db, code):
+            count += 1
+    for kind, _ in BONDS:
+        if krx.is_paused():
+            return count
+        if not fetch_log.is_fresh(db, f"krx-bond-try:{kind}", 60 * 12) and _fetch_bond_history(db, kind):
+            count += 1
+    return count
+
+
+def _compare(label: str, mine: float | None, theirs: float | None, unit_digits: int, key: bool) -> Fact | None:
+    if not mine or not theirs:
+        return None
+    where = "업종보다 낮은 편" if mine < theirs * 0.85 else "업종보다 높은 편" if mine > theirs * 1.15 else "업종과 비슷"
+    return Fact(
+        label=label,
+        value=f"{where} ({mine:.{unit_digits}f} vs {theirs:.{unit_digits}f})",
+        key=key,
+        hint="그날 이 종목 값과 같은 업종 회사들 전체 값을 비교했어요. 업종보다 낮다고 무조건 싼 건 아니에요(이익이 줄 거라 보는 경우도 있어요).",
+    )
+
+
+def _sector_facts(
+    db: Session, code: str, market: str, as_of: date, stock_per: float | None, stock_pbr: float | None, sector_focus: str
+) -> tuple[list[Fact], str | None]:
+    """그날 KRX 업종 지수와 시장 전체의 PER·PBR. 업종 이름(KRX 기준)도 같이 돌려준다."""
+    facts: list[Fact] = []
+    _ensure_sectors(db)
+    sec = repository.find_sector(db, code)
+    sector_name = None
+    if sec:
+        sector_name = sec.index_name
+        rows = [r for r in _valuation_series(db, sec.index_code, as_of - timedelta(days=365 * 3), as_of) if r.date <= as_of]
+        now = rows[-1] if rows else None
+        per_key, pbr_key = sector_focus in ("per", "both"), sector_focus in ("pbr", "both")
+        if now and now.per:
+            facts.append(
+                Fact(
+                    label=f"{sector_name} 업종 PER",
+                    value=f"{now.per:.1f}배",
+                    key=per_key,
+                    hint="그날 이 업종에 속한 회사들 전체의 PER이에요(KRX 업종 지수 기준).",
+                )
+            )
+            if c := _compare("이 종목 PER vs 업종", stock_per, now.per, 1, per_key):
+                facts.append(c)
+        if now and now.pbr:
+            facts.append(
+                Fact(
+                    label=f"{sector_name} 업종 PBR",
+                    value=f"{now.pbr:.2f}배",
+                    key=pbr_key,
+                    hint="그날 이 업종에 속한 회사들 전체의 PBR이에요(KRX 업종 지수 기준).",
+                )
+            )
+            if c := _compare("이 종목 PBR vs 업종", stock_pbr, now.pbr, 2, pbr_key):
+                facts.append(c)
+        pers = [r.per for r in rows if r.per]
+        if now and now.per and len(pers) >= 100:
+            avg = sum(pers) / len(pers)
+            where = "평소보다 싼 편" if now.per < avg * 0.85 else "평소보다 비싼 편" if now.per > avg * 1.15 else "평소와 비슷"
+            facts.append(
+                Fact(
+                    label=f"업종 평소 PER {min(pers):.0f}~{max(pers):.0f}배 (3년)",
+                    value=f"업종 전체가 {where}",
+                    hint=f"지난 3년 동안 이 업종 PER의 범위예요(평균 {avg:.1f}배). 업종 전체가 비싸거나 싼 시기인지 볼 수 있어요.",
+                )
+            )
+    m_code, m_name = KRX_MARKET_INDEX.get(market, KRX_MARKET_INDEX["KOSPI"])
+    mrows = [r for r in _valuation_series(db, m_code, as_of - timedelta(days=45), as_of) if r.date <= as_of]
+    if mrows and (mrows[-1].per or mrows[-1].pbr):
+        m = mrows[-1]
+        facts.append(
+            Fact(
+                label=f"{m_name} 전체 PER · PBR",
+                value=f"{m.per or 0:.1f}배 · {m.pbr or 0:.2f}배",
+                hint="그날 시장 전체 평균이에요. 업종·종목 값을 시장 평균과 견줘 볼 수 있어요.",
+            )
+        )
+    return facts, sector_name
+
+
+def _rate_facts(db: Session, as_of: date, highlight: bool) -> list[Fact]:
+    """그날 국고채 금리와 1년 전 대비 변화. 금리는 주식 전체의 '가격표'에 영향을 준다."""
+    facts: list[Fact] = []
+    trend = None
+    for kind, label in BONDS:
+        rows = [r for r in _bond_series(db, kind, as_of - timedelta(days=400), as_of) if r.date <= as_of]
+        if not rows:
+            continue
+        now = rows[-1].value
+        ago_rows = [r for r in rows if r.date <= as_of - timedelta(days=365)]
+        diff = now - ago_rows[-1].value if ago_rows else None
+        value = f"{now:.2f}%" + (f" (1년 전보다 {diff:+.2f}%p)" if diff is not None else "")
+        facts.append(
+            Fact(
+                label=f"{label} 금리",
+                value=value,
+                key=highlight,
+                hint="나라가 돈을 빌릴 때 내는 이자예요. 다른 금리(예금·대출)의 기준이 돼요.",
+            )
+        )
+        if kind == "국고채3년" and diff is not None:
+            trend = diff
+    if trend is not None:
+        word = "오르는 중" if trend >= 0.25 else "내리는 중" if trend <= -0.25 else "큰 변화 없음"
+        facts.append(
+            Fact(
+                label="금리 흐름 (1년)",
+                value=word,
+                key=highlight,
+                hint="금리가 오르면 예금 매력이 커지고 회사 이자 부담이 늘어 주식 전체에 부담이 되는 경우가 많아요(특히 이익이 먼 미래에 있는 성장주). 은행은 반대로 이자 차이로 이익이 늘기도 해요.",
             )
         )
     return facts

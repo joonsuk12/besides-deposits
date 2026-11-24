@@ -295,6 +295,9 @@ export type PracticeQuestion = {
   price_facts: PracticeFact[];
   value_facts: PracticeFact[];
   growth_facts: PracticeFact[];
+  krx_sector: string | null;
+  sector_facts: PracticeFact[];
+  rate_facts: PracticeFact[];
   years: PracticeYear[];
   guesses: Option[];
   reasons: Option[];

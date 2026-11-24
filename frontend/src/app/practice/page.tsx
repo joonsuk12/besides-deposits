@@ -47,8 +47,8 @@ const YEAR_ROWS: [string, keyof PracticeYear & string, (v: number | null) => str
   ["PBR (연말)", "pbr", (v) => num(v, "배", 2)],
 ];
 
-function FactGroup({ title, facts, empty }: { title: string; facts: PracticeFact[]; empty?: string }) {
-  if (facts.length === 0 && !empty) return null;
+function FactGroup({ title, facts = [], empty }: { title: string; facts?: PracticeFact[]; empty?: string }) {
+  if (facts.length === 0 && !empty) return null; // 데이터가 없는 묶음(예: KRX가 잠깐 막혀 업종·금리가 없을 때)은 숨긴다
   return (
     <div>
       <h3>{title}</h3>
@@ -212,6 +212,11 @@ export default function PracticePage() {
                 empty="이 종목은 그 시점 실적 정보가 없어요. 차트만 보고 판단해 보세요."
               />
               <FactGroup title="🌱 성장·수익성" facts={q.growth_facts} />
+              <FactGroup
+                title={`🏢 업종과 비교 (그날${q.krx_sector ? `, KRX ${q.krx_sector}` : ""})`}
+                facts={q.sector_facts}
+              />
+              <FactGroup title="💸 금리 (그날)" facts={q.rate_facts} />
             </div>
 
             {q.years.length > 0 && (
