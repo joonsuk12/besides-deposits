@@ -14,8 +14,10 @@ import {
   fetchPracticeQuestion,
   submitPracticeAnswer,
   type PracticeAnswer,
+  type PracticeFact,
   type PracticeHistory,
   type PracticeQuestion,
+  type PracticeYear,
 } from "@/lib/api";
 import styles from "./practice.module.css";
 
@@ -25,6 +27,47 @@ const tone = (n: number | null) => (n === null ? "" : n > 0 ? "up" : n < 0 ? "do
 // 억원 → "1.2조" / "3,450억"
 const eok = (v: number | null) =>
   v === null ? "-" : Math.abs(v) >= 10000 ? `${(v / 10000).toFixed(1)}조` : `${v.toLocaleString("ko-KR")}억`;
+
+const FOCUS_LABEL: Record<string, string> = {
+  per: "PER 먼저",
+  pbr: "PBR 먼저",
+  both: "PER·PBR 같이",
+  none: "PER·PBR보다 다른 것",
+};
+const num = (v: number | null, unit: string, digits = 1) =>
+  v === null ? "-" : `${v.toLocaleString("ko-KR", { maximumFractionDigits: digits })}${unit}`;
+const YEAR_ROWS: [string, keyof PracticeYear & string, (v: number | null) => string][] = [
+  ["매출", "revenue", (v) => eok(v)],
+  ["영업이익", "operating_profit", (v) => eok(v)],
+  ["순이익", "net_income", (v) => eok(v)],
+  ["매출 증가", "revenue_growth", (v) => (v === null ? "-" : `${v > 0 ? "+" : ""}${v.toFixed(1)}%`)],
+  ["영업이익률", "op_margin", (v) => num(v, "%")],
+  ["ROE", "roe", (v) => num(v, "%")],
+  ["PER (연말)", "per", (v) => num(v, "배")],
+  ["PBR (연말)", "pbr", (v) => num(v, "배", 2)],
+];
+
+function FactGroup({ title, facts, empty }: { title: string; facts: PracticeFact[]; empty?: string }) {
+  if (facts.length === 0 && !empty) return null;
+  return (
+    <div>
+      <h3>{title}</h3>
+      {facts.length === 0 && <p className={styles["muted"]}>{empty}</p>}
+      <dl>
+        {facts.map((f) => (
+          <div key={f.label} title={f.hint ?? undefined} className={f.key ? styles["keyfact"] : ""}>
+            <dt>
+              {f.key && <span className={styles["star"]}>⭐ </span>}
+              {f.label}
+              {f.hint && <span className={styles["q"]}>?</span>}
+            </dt>
+            <dd className={f.tone}>{f.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
 
 export default function PracticePage() {
   const [q, setQ] = useState<PracticeQuestion | null>(null);
@@ -103,10 +146,7 @@ export default function PracticePage() {
               <div>
                 <span className={styles["date"]}>📅 {q.as_of}</span>
                 <b className={styles["name"]}>{label}</b>
-                <span className={styles["sub"]}>
-                  {q.market}
-                  {q.industry && ` · ${q.industry}`}
-                </span>
+                <span className={styles["sub"]}>{q.market}</span>
               </div>
               {!result && (
                 <button className="ui-btn-ghost" onClick={() => setShowName(!showName)}>
@@ -118,6 +158,33 @@ export default function PracticePage() {
               <p className={styles["muted"]}>
                 이름을 알면 &quot;그 뒤에 어떻게 됐는지&quot; 기억이 섞일 수 있어서 가려 뒀어요.
               </p>
+            )}
+
+            {/* 업종을 크게: 이 업종에서는 어떤 숫자를 먼저 봐야 하는지 */}
+            {q.sector && (
+              <div className={styles["sector"]}>
+                <div className={styles["sector-head"]}>
+                  <span className={styles["sector-name"]}>🏭 {q.sector.name}</span>
+                  <span className={styles["focus"]}>{FOCUS_LABEL[q.sector.focus] ?? q.sector.focus}</span>
+                </div>
+                <p className={styles["sector-title"]}>{q.sector.title}</p>
+                <p className={styles["sector-reason"]}>{q.sector.reason}</p>
+                {q.sector.also.length > 0 && (
+                  <>
+                    <p className={styles["sector-sub"]}>이 업종에서 함께 볼 것</p>
+                    <ul className={styles["also"]}>
+                      {q.sector.also.map((a) => (
+                        <li key={a}>{a}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+                {q.sector.caution && <p className={styles["caution"]}>⚠️ {q.sector.caution}</p>}
+                <p className={styles["muted"]}>
+                  아래 숫자 중 <b className={styles["star"]}>⭐</b> 표시가 이 업종에서 특히 눈여겨볼 숫자예요.
+                  &quot;함께 볼 것&quot;(업황·금리 등)은 이 화면에 없으니, 그때 뉴스를 떠올려 보는 연습을 해 보세요.
+                </p>
+              </div>
             )}
 
             <div className={styles["chart"]}>
@@ -137,71 +204,51 @@ export default function PracticePage() {
             )}
 
             <div className={styles["facts"]}>
-              <div>
-                <h3>📈 주가 흐름 (그날 기준)</h3>
-                <dl>
-                  {q.price_facts.map((f) => (
-                    <div key={f.label} title={f.hint ?? undefined}>
-                      <dt>
-                        {f.label}
-                        {f.hint && <span className={styles["q"]}>?</span>}
-                      </dt>
-                      <dd className={f.tone}>{f.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-              <div>
-                <h3>💰 그때 알 수 있던 실적</h3>
-                {q.value_facts.length === 0 && q.years.length === 0 && (
-                  <p className={styles["muted"]}>이 종목은 그 시점 실적 정보가 없어요. 차트만 보고 판단해 보세요.</p>
-                )}
-                <dl>
-                  {q.value_facts.map((f) => (
-                    <div key={f.label} title={f.hint ?? undefined}>
-                      <dt>
-                        {f.label}
-                        {f.hint && <span className={styles["q"]}>?</span>}
-                      </dt>
-                      <dd className={f.tone}>{f.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-                {q.years.length > 0 && (
-                  <table className={styles["years"]}>
-                    <thead>
-                      <tr>
-                        <th />
-                        {q.years.map((y) => (
-                          <th key={y.year}>{y.year}년</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(
-                        [
-                          ["매출", "revenue"],
-                          ["영업이익", "operating_profit"],
-                          ["순이익", "net_income"],
-                        ] as const
-                      ).map(([name, key]) => (
-                        <tr key={key}>
-                          <td>{name}</td>
-                          {q.years.map((y) => (
-                            <td key={y.year} className={y[key] !== null && y[key]! < 0 ? "down" : ""}>
-                              {eok(y[key])}
-                            </td>
-                          ))}
-                        </tr>
+              <FactGroup title="🌏 그때 시장 분위기" facts={q.market_facts} />
+              <FactGroup title="📈 주가 흐름 (그날 기준)" facts={q.price_facts} />
+              <FactGroup
+                title="💰 가격 수준 (그때 나와 있던 실적 기준)"
+                facts={q.value_facts}
+                empty="이 종목은 그 시점 실적 정보가 없어요. 차트만 보고 판단해 보세요."
+              />
+              <FactGroup title="🌱 성장·수익성" facts={q.growth_facts} />
+            </div>
+
+            {q.years.length > 0 && (
+              <div className={styles["years-wrap"]}>
+                <h3>📊 연도별 실적 (그때 나와 있던 해까지)</h3>
+                <table className={styles["years"]}>
+                  <thead>
+                    <tr>
+                      <th />
+                      {q.years.map((y) => (
+                        <th key={y.year}>{y.year}년</th>
                       ))}
-                    </tbody>
-                  </table>
-                )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {YEAR_ROWS.map(([name, key, fmt]) => (
+                      <tr key={key}>
+                        <td>{name}</td>
+                        {q.years.map((y) => {
+                          const v = y[key];
+                          return (
+                            <td key={y.year} className={v !== null && v < 0 ? "down" : ""}>
+                              {fmt(v)}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
                 <p className={styles["muted"]}>
-                  사업보고서는 보통 다음 해 3월 말에 나와서, 그날 이미 나와 있던 해까지만 보여줘요.
+                  사업보고서는 보통 다음 해 3월 말에 나와서, 그날 이미 나와 있던 해까지만 보여줘요. PER·PBR(연말)은 그해
+                  마지막 거래일 주가로 계산한 값이라 이 회사의 &quot;평소 수준&quot;을 보는 데 써요. 연결 기준 숫자라
+                  지주회사처럼 자회사가 큰 회사는 네이버 숫자와 다를 수 있어요.
                 </p>
               </div>
-            </div>
+            )}
           </section>
 
           <aside className={styles["side"]}>
