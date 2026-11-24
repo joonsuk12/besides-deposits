@@ -76,6 +76,9 @@ DISCLOSURE_CHECKS = (
     ),
 )
 
+# 항목 이름 (마이데이터 화면이 "그때 걸렸던 신호"를 보여줄 때 쓴다)
+CHECK_TITLES = {c.key: c.title for c in DISCLOSURE_CHECKS} | {"loss": "이익을 내고 있나", "capital": "빚이 재산보다 많은가"}
+
 BRIEF_HALT = "중요내용공시"  # 예: 매매거래정지및정지해제(중요내용공시)
 STATUS_ORDER = {"danger": 0, "caution": 1, "ok": 2}
 

@@ -299,10 +299,13 @@ export type PracticeAnswer = {
   comment: string;
   prices: Price[];
 };
+export type PracticeStat = { key: string; label: string; total: number; correct: number };
 export type PracticeHistory = {
   total: number;
   correct: number;
-  by_reason: { key: string; label: string; total: number; correct: number }[];
+  by_guess: PracticeStat[];
+  by_reason: PracticeStat[];
+  lines: string[];
   items: {
     created_at: string;
     code: string | null;
@@ -332,3 +335,29 @@ export async function submitPracticeAnswer(input: {
   if (!res.ok) throw new Error(`제출 실패 (${res.status})`);
   return res.json();
 }
+
+// 마이데이터 가공: 위험 신호를 보고 남긴 생각과 그 뒤 주가
+export type RiskReactionItem = {
+  id: number;
+  created_at: string;
+  stock_code: string;
+  name: string;
+  answer: string;
+  answer_label: string;
+  memo: string;
+  flagged: string[];
+  close_then: number | null;
+  close_then_date: string | null;
+  close_now: number | null;
+  close_now_date: string | null;
+  change_pct: number | null;
+  days: number | null;
+};
+export type MyInsights = {
+  lines: string[];
+  risk_items: RiskReactionItem[];
+  risk_groups: { answer: string; label: string; count: number; avg_change_pct: number | null; counted: number }[];
+  total_records: number;
+};
+export const fetchMyInsights = () => request<MyInsights>("/mydata/insights");
+export const MYDATA_EXPORT_URL = `${API_URL}/mydata/export`;

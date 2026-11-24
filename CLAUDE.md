@@ -51,7 +51,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 초보용 분류는 유료 AI 없이 규칙으로: 공시는 `disclosure/keypoints.py`의 `RULES`(위에서부터 첫 일치, `category`·`level`), 리포트는 `report/keypoints.py`. 위험 신호도 이 분류 결과를 재사용한다.
 
 **프론트** (`frontend/src`, Next.js 16 App Router + React 19, 전부 client component + CSS Modules)
-- 화면: `/` 홈(관심종목 오늘 소식), `/[code]` 종목 차트 화면(중심), `/practice` 타임머신 연습장, `/watchlist`, `/reports`, `/guide`, `/intro`.
+- 화면: `/` 홈(관심종목 오늘 소식), `/[code]` 종목 차트 화면(중심), `/practice` 타임머신 연습장, `/mydata` 내 기록(마이데이터 가공), `/watchlist`, `/reports`, `/guide`, `/intro`.
 - 백엔드 호출과 타입은 모두 `lib/api.ts` 한 파일 (`NEXT_PUBLIC_API_URL`, 기본 `http://localhost:8100`).
 - 차트는 `components/StockChart.tsx`(lightweight-charts 5, 일→주→월→연봉 자동 전환, 마커 N/R/D와 타임머신 `cutDate`, 지표 계산은 `lib/indicators.ts`). TradingView 로고는 끄고 출처 링크를 따로 둔다(라이선스 조건).
 - 종목 화면은 ETF(`stock.market === "ETF"`)면 회사용 카드(PER·위험 신호·공시·리포트) 대신 `EtfCard`를 보여준다.

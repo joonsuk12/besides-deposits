@@ -326,10 +326,20 @@ def history(db: Session, limit: int = 30) -> HistoryResponse:
             if key in stats:
                 stats[key].total += 1
                 stats[key].correct += 1 if ctx.get("correct") else 0
+    by_guess = []
+    for g in GUESSES:
+        mine = [ctx for r, ctx in rows if r.answer == g.key]
+        if mine:
+            by_guess.append(
+                ReasonStat(key=g.key, label=OUTCOME_LABEL[g.key], total=len(mine), correct=sum(1 for c in mine if c.get("correct")))
+            )
+    by_reason = sorted([s for s in stats.values() if s.total], key=lambda s: -s.total)
     return HistoryResponse(
         total=len(rows),
         correct=sum(1 for _, ctx in rows if ctx.get("correct")),
-        by_reason=sorted([s for s in stats.values() if s.total], key=lambda s: -s.total),
+        by_guess=by_guess,
+        by_reason=by_reason,
+        lines=_history_lines(rows, by_guess, by_reason),
         items=[
             HistoryItem(
                 created_at=r.created_at,
@@ -344,3 +354,28 @@ def history(db: Session, limit: int = 30) -> HistoryResponse:
             for r, ctx in rows[:limit]
         ],
     )
+
+
+def _history_lines(rows: list, by_guess: list[ReasonStat], by_reason: list[ReasonStat]) -> list[str]:
+    """한 줄 돌아보기. 문제가 적을 때는 우연이 크다는 말을 먼저 한다."""
+    if not rows:
+        return []
+    total, correct = len(rows), sum(1 for _, c in rows if c.get("correct"))
+    out = [f"타임머신 문제 {total}개 중 {correct}개를 맞혔어요 ({correct / total * 100:.0f}%). 세 가지 중 하나를 찍으면 평균 33%쯤 맞아요."]
+    if by_guess:
+        most = max(by_guess, key=lambda g: g.total)
+        if most.total >= 2 and most.total / total >= 0.6:
+            out.append(f"'{most.label}'로 예상한 게 {most.total}번으로 가장 많아요. 한쪽으로 쏠리는 습관일 수 있어요.")
+    sure = [r for r in by_reason if r.total >= 3]
+    if sure:
+        rate = lambda r: r.correct / r.total  # noqa: E731
+        best, worst = max(sure, key=rate), min(sure, key=rate)
+        if rate(best) > rate(worst):  # 이유마다 차이가 있을 때만 말한다
+            out.append(f"가장 잘 맞은 이유: '{best.label}' ({best.correct}/{best.total}).")
+            out.append(f"가장 덜 맞은 이유: '{worst.label}' ({worst.correct}/{worst.total}). 이 이유로 판단할 땐 다른 정보도 함께 보세요.")
+    gut = next((r for r in by_reason if r.key == "gut"), None)
+    if gut and gut.total >= 3:
+        out.append(f"'그냥 감으로'는 {gut.total}번 중 {gut.correct}번 맞았어요. 이유를 고른 문제와 비교해 보세요.")
+    if total < 10:
+        out.append("문제가 10개는 넘어야 습관이 보이기 시작해요.")
+    return out

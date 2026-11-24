@@ -280,7 +280,12 @@ export default function PracticePage() {
             )}
 
             <section className="ui-card">
-              <h2>📒 내 기록</h2>
+              <h2>
+                📒 내 기록{" "}
+                <Link href="/mydata" className={styles["more-link"]}>
+                  자세히 →
+                </Link>
+              </h2>
               {!history || history.total === 0 ? (
                 <p className={styles["muted"]}>아직 푼 문제가 없어요. 첫 문제를 풀어 보세요.</p>
               ) : (

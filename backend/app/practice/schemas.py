@@ -90,5 +90,7 @@ class HistoryItem(BaseModel):
 class HistoryResponse(BaseModel):
     total: int
     correct: int
+    by_guess: list[ReasonStat] = []  # "올랐다"고 예상했을 때 얼마나 맞았나 등
     by_reason: list[ReasonStat]  # 이유를 골랐을 때 얼마나 맞았나 (내 판단 습관)
+    lines: list[str] = []  # 한 줄 돌아보기
     items: list[HistoryItem]  # 최신순
