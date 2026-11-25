@@ -11,7 +11,6 @@ from datetime import datetime
 from app.core.database import SessionLocal, create_tables
 from app.disclosure import service as disclosure_service
 from app.news import service as news_service
-from app.practice import service as practice_service
 from app.report import service as report_service
 from app.stock import repository as stock_repository
 from app.stock import service as stock_service
@@ -29,8 +28,6 @@ def main() -> None:
             ("공시", lambda: disclosure_service.collect_watchlist(db)),
             # 매매동향은 네이버가 최근 60일만 주므로 매일 받아 두면 긴 기간이 쌓인다
             ("매매동향", lambda: sum(len(trend_service.get_by_stock(db, s.code, 7).items) for s in stock_repository.find_watched_stocks(db))),
-            # 타임머신 연습용: 업종 PER·PBR, 금리 10년치 (KRX). 문제를 낼 때 KRX에 묻지 않게 미리 받아 둔다
-            ("업종 PER·PBR·금리", lambda: practice_service.refresh_market_history(db)),
         ]
         for name, step in steps:
             # 하나가 실패해도 나머지는 계속한다
