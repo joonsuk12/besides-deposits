@@ -1,18 +1,20 @@
-"""읽기 퀴즈 문제 만들기 (유료 AI 없이, 이미 있는 규칙과 데이터로). Spring으로 치면 문제 유형마다 하나씩 있는 전략(Strategy) 클래스 묶음이다.
+"""읽기 퀴즈 문제 만들기. Spring으로 치면 문제 유형마다 하나씩 있는 전략(Strategy) 클래스 묶음이다.
 
-원칙: **정답이 분명한 문제만** 낸다. 주가 방향을 맞히는 문제는 내지 않는다 (2026-11-25 타임머신 평가: 운에 가깝다).
-"이 공시는 무슨 뜻인가", "이 업종은 무엇을 먼저 보나", "업종보다 비싼가"처럼 읽는 법을 묻고, 정답 근거는 화면에 이미 있는 규칙이다.
-- disclosure : 공시 이름 → 뜻 (disclosure/keypoints.py 규칙)
-- risk       : 공시 → 위험 신호 점검의 어느 항목 (risk/service.py 항목)
-- focus      : 업종 → PER·PBR 중 무엇을 먼저 (valuation/focus.py 가이드)
-- peer       : 이 종목 PER(PBR) vs 업종 → 낮은/비슷/높은 편 (±15%, 주가 수준 카드와 같은 기준)
-- upside     : 리포트 목표주가 vs 그날 종가 → 상승여력 구간
-- then       : 과거 어느 날 PER vs 그 회사 평소 범위 → 낮은/비슷/높은 편 (타임머신 계산 재사용)
+문제 문구는 문제 은행(quiz/bank.py)에 사람이 미리 써 두고, 여기서는 **관심종목의 실제 데이터**를 골라 끼워 넣는다.
+- disclosure : 관심종목에 실제로 나온 공시 → "그래서 나에게 무슨 일이 / 무엇을 확인할까"
+- valuation  : 관심종목의 지금 PER·PBR → 왜 높고 낮을 수 있나, 흔한 착각, PER이 움직이는 원리
+- report     : 관심종목 리포트의 목표주가 변화·투자의견 → 어떻게 읽나
+- per_change : 관심종목의 지난 해들 연말 PER 변화 → 주가 때문인가 이익 때문인가 (타임머신 데이터 재사용)
 
-문제는 (유형, 종목, 참조값)만 있으면 똑같이 다시 만들 수 있다. 그래서 답을 채점할 때 서버가 다시 만들어 정답을 비교한다.
-보기 순서도 qid로 정한 난수라서 다시 만들어도 같다.
+원칙
+- 정답이 분명한 문제만. 주가 방향은 묻지 않는다.
+- 문제는 (유형, 종목, 참조값)으로 똑같이 다시 만들 수 있다. 채점 때 서버가 다시 만들어 비교한다.
+- 보기 key는 qid와 문장으로 만든 해시라 화면 코드에서 정답을 알 수 없다. 보기 순서도 qid로 정한 난수라 다시 만들어도 같다.
 """
+import hashlib
+import math
 import random
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 
@@ -20,41 +22,20 @@ from sqlalchemy.orm import Session
 
 from app.disclosure import keypoints
 from app.disclosure import repository as disclosure_repository
+from app.quiz import bank
+from app.quiz.bank import Template
 from app.report import repository as report_repository
-from app.risk.service import DISCLOSURE_CHECKS
 from app.stock import repository as stock_repository
-from app.valuation import focus
 from app.valuation import repository as valuation_repository
 from app.valuation import service as valuation_service
 
 TYPES = {
-    "disclosure": "📢 공시 읽기",
-    "risk": "🚦 위험 신호 분류",
-    "focus": "🏭 업종별로 볼 지표",
-    "peer": "⚖️ 업종과 비교",
-    "upside": "🎯 목표주가 읽기",
-    "then": "⏳ 그때 사실 읽기",
+    "disclosure": "📢 공시 해석",
+    "valuation": "📊 PER·PBR 해석",
+    "report": "📄 리포트 해석",
+    "per_change": "⏳ PER은 왜 바뀌었나",
 }
-LEVEL_WORD = {"warn": "꼭 확인할 소식", "good": "보통 좋게 보는 소식", "key": "내용을 봐야 아는 중요한 소식", "info": "참고용"}
 DART = "https://dart.fss.or.kr/dsaf001/main.do?rcpNo={}"
-SIMILAR = 0.15  # 주가 수준 카드와 같은 ±15% 기준
-LEVEL3 = [("low", "업종보다 낮은 편"), ("similar", "업종과 비슷"), ("high", "업종보다 높은 편")]
-# 뜻이 비슷해서 오답 보기로 같이 내면 헷갈리기만 하는 공시 묶음 (정답과 같은 묶음은 오답 보기로 쓰지 않는다)
-SIMILAR_GROUPS = (
-    {"자사주 매입", "주식 소각", "자사주 처분", "자사주 신탁 종료"},
-    {"유상증자", "전환사채(CB)", "신주인수권부사채(BW)", "교환사채(EB)", "전환가격 조정", "주식 수 증가", "사채 미리 갚기"},
-    {"공급 계약", "계약 해지"},
-    {"무상증자", "감자", "유상감자", "주식 쪼개기·합치기"},
-    {"실적 발표", "실적 큰 변화", "실적 발표 예고"},
-    {"상장폐지", "관리종목", "거래정지", "불성실공시"},
-)
-
-
-def _josa(word: str, with_final: str, without_final: str) -> str:
-    """받침이 있으면 앞의 조사, 없으면 뒤의 조사 (대신증권이 / 키움증권이 / 하나증권이 …)."""
-    last = word[-1]
-    has_final = "가" <= last <= "힣" and (ord(last) - ord("가")) % 28 != 0
-    return word + (with_final if has_final else without_final)
 
 
 @dataclass
@@ -65,7 +46,7 @@ class Item:
     name: str
     prompt: str
     options: list[tuple[str, str]]  # (key, label)
-    correct: str
+    correct: str  # 정답 보기의 key
     explanation: str
     context: list[str] = field(default_factory=list)
     checks: list[str] = field(default_factory=list)
@@ -80,241 +61,228 @@ class Item:
 def build(db: Session, qtype: str, code: str, ref: str | None, rng: random.Random) -> Item | None:
     """ref가 없으면 새로 고르고, 있으면 그 문제를 그대로 다시 만든다."""
     stock = stock_repository.find_stock(db, code)
-    if stock is None:
+    if stock is None or stock.market == "ETF":
         return None
-    fn = {
-        "disclosure": _disclosure,
-        "risk": _risk,
-        "focus": _focus,
-        "peer": _peer,
-        "upside": _upside,
-        "then": _then,
-    }.get(qtype)
+    fn = {"disclosure": _disclosure, "valuation": _valuation, "report": _report, "per_change": _per_change}.get(qtype)
     return fn(db, code, stock.name, ref, rng) if fn else None
 
 
-def _ordered(rng: random.Random, options: list[tuple[str, str]]) -> list[tuple[str, str]]:
-    out = options[:]
-    rng.shuffle(out)
-    return out
+def _key(qid: str, text: str) -> str:
+    return hashlib.sha1(f"{qid}|{text}".encode()).hexdigest()[:8]
 
 
-def _three_way(ratio: float) -> str:
-    return "low" if ratio < 1 - SIMILAR else "high" if ratio > 1 + SIMILAR else "similar"
+def _from_template(
+    qtype: str, code: str, ref: str, name: str, t: Template, values: dict, rng: random.Random,
+    correct_text: str | None = None, wrong_texts: list[str] | None = None, **extra,
+) -> Item:
+    """문제 틀에 값을 채우고 보기를 섞는다. 보기 key는 해시라 정답이 드러나지 않는다."""
+    qid = f"{qtype}|{code}|{ref}"
+    fill = lambda s: s.format(**values) if s else s  # noqa: E731
+    correct = fill(correct_text if correct_text is not None else t.correct)
+    wrongs = [fill(w) for w in (wrong_texts if wrong_texts is not None else t.wrongs)]
+    texts = [correct] + wrongs
+    rng.shuffle(texts)
+    options = [(_key(qid, x), x) for x in texts]
+    return Item(
+        type=qtype,
+        code=code,
+        ref=ref,
+        name=name,
+        prompt=fill(t.prompt),
+        options=options,
+        correct=_key(qid, correct),
+        explanation=fill(t.explanation),
+        checks=[fill(c) for c in t.checks],
+        note=fill(t.note),
+        **extra,
+    )
 
 
-# ── 공시 읽기 ──────────────────────────────────────────
+def _won(n: float) -> str:
+    return f"{n:,.0f}"
 
 
-def _recent_disclosures(db: Session, code: str, days: int) -> list:
-    rows = disclosure_repository.find_by_stock(db, code, date.today() - timedelta(days=days))
-    return [d for d in rows if not keypoints.is_correction(d.report_nm)]
+# ── 공시 해석 ──────────────────────────────────────────
 
 
 def _disclosure(db: Session, code: str, name: str, ref: str | None, rng: random.Random) -> Item | None:
-    rows = [d for d in _recent_disclosures(db, code, 120) if keypoints.classify(d.report_nm).category != "기타"]
-    rows = [d for d in rows if keypoints.classify(d.report_nm).level != "info"] or rows  # 참고용보다 중요한 공시를 먼저
+    rows = disclosure_repository.find_by_stock(db, code, date.today() - timedelta(days=365))
+    rows = [d for d in rows if not keypoints.is_correction(d.report_nm)]
+    by_cat: dict[str, list] = {}
+    for d in rows:  # 최신순으로 온다
+        cat = keypoints.classify(d.report_nm).category
+        if cat == "다른 회사 투자" and "처분" in d.report_nm:  # 문제 틀이 '사는' 경우라 파는 공시는 뺀다
+            continue
+        if cat in bank.DISCLOSURE:
+            by_cat.setdefault(cat, []).append(d)
+    if not by_cat:
+        return None
+    counts = Counter({c: len(v) for c, v in by_cat.items()})
+
+    def usable(cat: str, t: Template) -> bool:
+        return "{count}" not in t.prompt or (counts[cat] >= 10 if t.tid == "insider-many" else counts[cat] >= 1)
+
     if ref:
-        rows = [d for d in rows if d.rcept_no == ref]
-    if not rows:
-        return None
-    d = rows[0] if ref else rng.choice(rows)
-    rule = keypoints.classify(d.report_nm)
-    group = next((g for g in SIMILAR_GROUPS if rule.category in g), {rule.category})
-    others = [r for r in keypoints.RULES if r.category not in group and r.category != rule.category and r.level != "info"]
-    picks = rng.sample(others, 3)
-    options = _ordered(rng, [(rule.category, rule.explain)] + [(r.category, r.explain) for r in picks])
-    return Item(
-        type="disclosure",
-        code=code,
-        ref=d.rcept_no,
-        name=name,
-        prompt=f"{d.rcept_dt:%Y-%m-%d} {name}에서 '{d.report_nm}' 공시가 나왔어요. 이 공시는 무슨 뜻일까요?",
-        options=options,
-        correct=rule.category,
-        explanation=f"'{rule.category}' 공시예요. " + (rule.why or rule.explain),  # 보기 문장은 화면에 이미 있어서 이유만
-        checks=list(rule.checks),
-        note=f"이런 공시는 보통 '{LEVEL_WORD.get(rule.level, rule.level)}'으로 봐요. 공시 이름의 핵심 단어({rule.words[0]})를 기억해 두면 다음엔 이름만 보고도 알 수 있어요.",
-        link=DART.format(d.rcept_no),
-    )
+        rcept_no, tid = ref.split(":")
+        d = next((x for v in by_cat.values() for x in v if x.rcept_no == rcept_no), None)
+        if d is None:
+            return None
+        cat = keypoints.classify(d.report_nm).category
+        t = next((t for t in bank.DISCLOSURE[cat] if t.tid == tid), None)
+        if t is None:
+            return None
+    else:
+        # 공시 종류를 먼저 고른다 (임원 보고처럼 수천 건인 종류만 계속 나오지 않게)
+        cat = rng.choice(sorted(by_cat))
+        templates = [t for t in bank.DISCLOSURE[cat] if usable(cat, t)]
+        if not templates:
+            return None
+        t = rng.choice(templates)
+        d = by_cat[cat][0] if "{count}" in t.prompt else rng.choice(by_cat[cat][:5])  # 최근 것 위주
+    values = {"name": name, "title": d.report_nm, "date": d.rcept_dt.strftime("%Y-%m-%d"), "count": counts[cat]}
+    return _from_template("disclosure", code, f"{d.rcept_no}:{t.tid}", name, t, values, rng, link=DART.format(d.rcept_no))
 
 
-# ── 위험 신호 분류 ────────────────────────────────────
+# ── PER·PBR 해석 ───────────────────────────────────────
 
 
-def _risk(db: Session, code: str, name: str, ref: str | None, rng: random.Random) -> Item | None:
-    by_category = {cat: c for c in DISCLOSURE_CHECKS for cat in c.categories}
-    rows = [d for d in _recent_disclosures(db, code, 365) if keypoints.classify(d.report_nm).category in by_category]
-    if ref:
-        rows = [d for d in rows if d.rcept_no == ref]
-    if not rows:
-        return None
-    d = rows[0] if ref else rng.choice(rows)
-    rule = keypoints.classify(d.report_nm)
-    check = by_category[rule.category]
-    others = [c for c in DISCLOSURE_CHECKS if c.key != check.key]
-    picks = rng.sample(others, 3)
-    options = _ordered(rng, [(check.key, check.title)] + [(c.key, c.title) for c in picks])
-    return Item(
-        type="risk",
-        code=code,
-        ref=d.rcept_no,
-        name=name,
-        prompt=f"{name}의 '{d.report_nm}' 공시({d.rcept_dt:%Y-%m-%d})는 위험 신호 점검의 어느 항목에 들어갈까요?",
-        options=options,
-        correct=check.key,
-        explanation=f"'{rule.category}' 공시는 '{check.title}' 항목이에요. {check.why}",
-        checks=list(rule.checks),
-        note="종목 화면 오른쪽 🚦 위험 신호 점검 카드에서 이 종목의 다른 항목도 확인해 보세요.",
-        link=DART.format(d.rcept_no),
-    )
-
-
-# ── 업종별로 볼 지표 ───────────────────────────────────
-
-FOCUS_OPTIONS = [
-    ("per", "PER을 먼저 (이익을 봐요)"),
-    ("pbr", "PBR을 먼저 (자산을 봐요)"),
-    ("both", "PER과 PBR을 같이 (업황 따라 이익이 크게 바뀌어요)"),
-    ("none", "둘 다 잘 안 맞아요 (다른 것을 봐요)"),
-]
-
-
-def _focus(db: Session, code: str, name: str, ref: str | None, rng: random.Random) -> Item | None:
-    me = valuation_repository.find(db, code)
-    if me is None or not me.industry_name:
-        return None
-    guide = focus.decide(me.industry_name, None)  # 적자 여부와 상관없이 업종 원래 기준을 묻는다
-    return Item(
-        type="focus",
-        code=code,
-        ref="",
-        name=name,
-        prompt=f"{name}의 업종은 '{me.industry_name}'. 이 업종 주가가 비싼지 싼지 볼 때 무엇을 먼저 볼까요?",
-        options=FOCUS_OPTIONS,
-        correct=guide.focus,
-        explanation=f"{guide.title}. {guide.reason}",
-        checks=list(guide.also[:3]),
-        note=guide.caution,
-    )
-
-
-# ── 업종과 비교 ───────────────────────────────────────
-
-
-def _peer(db: Session, code: str, name: str, ref: str | None, rng: random.Random) -> Item | None:
+def _valuation(db: Session, code: str, name: str, ref: str | None, rng: random.Random) -> Item | None:
     v = valuation_service.get_by_stock(db, code)
     if not v.available:
         return None
-    choices = [m for m in ("per", "pbr") if getattr(v, m) and getattr(v, f"industry_{m}")]
+    me = valuation_repository.find(db, code)
+    industry = (me.industry_name if me else None) or ""
+    per, ind = v.per, v.industry_per
+    situations: dict[str, Template] = {}
+    if per and per >= 100:
+        situations[bank.PER_HUGE.tid] = bank.PER_HUGE
+    elif per and ind and per < ind * 0.7:
+        t = bank.PER_LOW_CYCLE if v.focus == "both" else bank.PER_LOW
+        situations[t.tid] = t
+    elif per and ind and per > ind * 1.3:
+        situations[bank.PER_HIGH.tid] = bank.PER_HIGH
+    if per and per < 100:
+        situations[bank.PER_MOVE.tid] = bank.PER_MOVE
+    if v.pbr and v.focus == "pbr" and any(w in industry for w in ("복합", "지주")):
+        situations[bank.PBR_HOLDING.tid] = bank.PBR_HOLDING
+    if not situations:
+        return None
+    tid = ref if ref else rng.choice(sorted(situations))
+    t = situations.get(tid)
+    if t is None:
+        return None
+    values = {
+        "name": name,
+        "per": f"{per:.1f}" if per else "-",
+        "pbr": f"{v.pbr:.2f}" if v.pbr else "-",
+        "ind_per": f"{ind:.1f}" if ind else "-",
+        "eps": _won(v.eps) if v.eps else "-",
+        "price": _won(v.price) if v.price else "-",
+        "up": f"{per * 1.2:.1f}" if per else "-",
+        "down": f"{per * 0.8:.1f}" if per else "-",
+        "double": f"{per * 2:.1f}" if per else "-",
+    }
+    context = []
+    if v.price_date:
+        context.append(f"{v.price_date:%Y-%m-%d} 종가 기준")
+    return _from_template("valuation", code, tid, name, t, values, rng, context=context)
+
+
+# ── 리포트 해석 ─────────────────────────────────────────
+
+
+def _report(db: Session, code: str, name: str, ref: str | None, rng: random.Random) -> Item | None:
+    reports = [r for r in report_repository.find_by_stock(db, code, 40) if r.write_date >= date.today() - timedelta(days=180)]
+    cands: list[tuple] = []  # (report, template, prev)
+    for r in reports:
+        prev = report_repository.find_previous_goal(db, r) if r.goal_price else None
+        if prev and r.goal_price and r.goal_price < prev and r.opinion_type == "buy":
+            cands.append((r, bank.REPORT_DOWN_BUY, prev))
+        elif prev and r.goal_price and r.goal_price > prev:
+            cands.append((r, bank.REPORT_UP, prev))
+        if r.opinion_type == "neutral":
+            cands.append((r, bank.REPORT_NEUTRAL, prev))
     if ref:
-        choices = [m for m in choices if m == ref]
-    if not choices:
-        return None
-    metric = choices[0] if ref else rng.choice(choices)
-    mine, theirs = getattr(v, metric), getattr(v, f"industry_{metric}")
-    label = metric.upper()
-    correct = _three_way(mine / theirs)
-    word = dict(LEVEL3)[correct]
-    note = "업종보다 낮다고 무조건 싼 건 아니에요. 이익이 줄 거라고 보는 사람이 많아서 낮을 수도 있어요. 높다고 비싸기만 한 것도 아니에요(성장 기대)."
-    if v.focus and v.focus != "both" and v.focus != metric:
-        note = f"참고로 이 업종은 {v.focus.upper()}를 먼저 보는 업종이에요. " + note
-    return Item(
-        type="peer",
-        code=code,
-        ref=metric,
-        name=name,
-        prompt=f"{name}의 {label}은 {mine:g}배, 같은 업종({v.industry_name}) 주요 회사들의 {label} 중간값은 {theirs:g}배예요. 이 종목 {label}은?",
-        context=[f"차이 기준: 업종 값의 ±15% 안이면 '비슷', 그보다 낮으면 '낮은 편', 높으면 '높은 편'"],
-        options=LEVEL3,
-        correct=correct,
-        explanation=f"{mine:g} ÷ {theirs:g} = {mine / theirs:.2f} → 업종의 {mine / theirs * 100:.0f}% 수준이라 '{word}'이에요.",
-        checks=[f"{label}이 무엇인지: " + ("주가가 1년 이익의 몇 배인지" if metric == "per" else "주가가 회사 순자산의 몇 배인지")],
-        note=note,
-    )
-
-
-# ── 목표주가 읽기 ─────────────────────────────────────
-
-UPSIDE_OPTIONS = [
-    ("neg", "지금 주가보다 낮아요 (마이너스)"),
-    ("lt10", "0~10%"),
-    ("10to30", "10~30%"),
-    ("30to50", "30~50%"),
-    ("gt50", "50% 넘게"),
-]
-
-
-def _upside_bucket(u: float) -> str:
-    return "neg" if u < 0 else "lt10" if u < 10 else "10to30" if u < 30 else "30to50" if u < 50 else "gt50"
-
-
-def _upside(db: Session, code: str, name: str, ref: str | None, rng: random.Random) -> Item | None:
-    reports = [r for r in report_repository.find_by_stock(db, code, 30) if r.goal_price]
-    reports = [r for r in reports if r.write_date >= date.today() - timedelta(days=120)]
-    if ref:
-        reports = [r for r in reports if r.nid == ref]
-    if not reports:
-        return None
-    r = reports[0] if ref else rng.choice(reports)
-    prices = [p for p in stock_repository.find_prices(db, code, r.write_date - timedelta(days=10)) if p.date <= r.write_date]
-    if not prices:
-        return None
-    close = prices[-1].close
-    upside = (r.goal_price / close - 1) * 100
-    opinion = f" 투자의견은 '{r.opinion}'이에요." if r.opinion else ""
-    return Item(
-        type="upside",
-        code=code,
-        ref=r.nid,
-        name=name,
-        prompt=f"{r.write_date:%Y-%m-%d} {_josa(r.broker, '이', '가')} {name} 목표주가를 {r.goal_price:,}원으로 냈어요. 그날 종가는 {close:,}원이에요. 증권사가 보는 '오를 여지(상승여력)'는 얼마쯤일까요?",
-        context=["상승여력 = (목표주가 ÷ 지금 주가 − 1) × 100"],
-        options=UPSIDE_OPTIONS,
-        correct=_upside_bucket(upside),
-        explanation=f"({r.goal_price:,} ÷ {close:,} − 1) × 100 = {upside:+.1f}%예요.{opinion}",
-        checks=["목표주가는 보통 6개월~1년 안에 갈 수 있다고 보는 값이에요", "같은 증권사의 지난번 목표주가와 비교해 올렸는지 내렸는지도 보세요"],
-        note="목표주가는 증권사의 예상일 뿐 맞는다는 보장이 없어요. 증권사 리포트는 대부분 '매수' 의견이라, 의견보다 목표주가를 올렸는지 내렸는지가 더 많은 걸 알려줘요.",
-    )
-
-
-# ── 그때 사실 읽기 (타임머신 계산 재사용) ──────────────
-
-
-def _then(db: Session, code: str, name: str, ref: str | None, rng: random.Random) -> Item | None:
-    from app.practice import service as practice_service
-
-    prices = stock_repository.find_prices(db, code, date(2000, 1, 1))
-    if len(prices) < 400:
+        nid, tid = ref.split(":")
+        cands = [c for c in cands if c[0].nid == nid and c[1].tid == tid]
+    if not cands:
         return None
     if ref:
-        idx = [k for k, p in enumerate(prices) if p.date.isoformat() == ref]
-        candidates = idx
+        r, t, prev = cands[0]
     else:
-        candidates = rng.sample(range(260, len(prices) - 1), min(25, len(prices) - 261))
-    for i in candidates:
-        v = practice_service.then_valuation(db, code, prices, i)
-        if not v:
+        tid = rng.choice(sorted({c[1].tid for c in cands}))  # 종류를 먼저 골라 한쪽으로 쏠리지 않게
+        r, t, prev = rng.choice([c for c in cands if c[1].tid == tid])
+    values = {
+        "name": name,
+        "broker": r.broker,
+        "date": r.write_date.strftime("%Y-%m-%d"),
+        "goal": _won(r.goal_price) if r.goal_price else "-",
+        "prev": _won(prev) if prev else "-",
+        "opinion": r.opinion or {"buy": "매수", "neutral": "중립", "sell": "매도"}.get(r.opinion_type or "", "중립"),
+    }
+    return _from_template("report", code, f"{r.nid}:{t.tid}", name, t, values, rng)
+
+
+# ── PER은 왜 바뀌었나 ──────────────────────────────────
+
+
+def _per_change(db: Session, code: str, name: str, ref: str | None, rng: random.Random) -> Item | None:
+    annual = {a.year: a for a in valuation_repository.find_annual(db, code)}
+    shares = valuation_service.split_adjusted_shares(db, code)
+    year_end: dict[int, int] = {}
+    for p in stock_repository.find_prices(db, code, date(2000, 1, 1)):
+        year_end[p.date.year] = p.close  # 날짜순이라 마지막 값이 그해 마지막 거래일
+    cands = []
+    for y1 in sorted(annual):
+        y0 = y1 - 1
+        a0, a1 = annual.get(y0), annual.get(y1)
+        if not (a0 and a1 and a0.net_income and a1.net_income and a0.net_income > 0 and a1.net_income > 0):
             continue
-        past, per = v["past"], v["per"]
-        avg = sum(past) / len(past)
-        correct = "low" if per < avg * 0.85 else "high" if per > avg * 1.15 else "similar"
-        words = {"low": "평소보다 낮은 편", "similar": "평소와 비슷", "high": "평소보다 높은 편"}
-        after = v["after"]
-        note = "이건 '그때 비쌌나 쌌나'를 읽는 연습이에요. 싸 보였다고 꼭 올랐던 건 아니에요."
-        if after is not None:
-            note = f"참고로 그 뒤 6개월 동안 주가는 {after:+.1f}% 움직였어요. " + note
-        return Item(
-            type="then",
-            code=code,
-            ref=prices[i].date.isoformat(),
-            name=name,
-            prompt=f"{prices[i].date:%Y-%m-%d} {name}의 PER은 {per:.1f}배였어요({v['last_year']}년 이익 기준). 이 회사의 지난 해들 연말 PER과 비교하면?",
-            context=[f"지난 해들 연말 PER: " + ", ".join(f"{y}년 {p:g}배" for y, p in zip(v["years"], past)), f"평균 {avg:.1f}배 (±15% 안이면 '비슷')"],
-            options=[(k, words[k]) for k in ("low", "similar", "high")],
-            correct=correct,
-            explanation=f"{per:.1f}배 ÷ 평균 {avg:.1f}배 = {per / avg:.2f} → '{words[correct]}'이에요. 같은 회사의 평소 수준과 견주면 지금이 비싼 편인지 싼 편인지 감이 와요.",
-            checks=["업종 평균과도 비교해 보세요 (회사마다 평소 PER이 달라요)", "이익이 크게 줄어든 해에는 PER이 갑자기 높아져요"],
-            note=note,
-        )
-    return None
+        if not (shares.get(y0) and shares.get(y1) and year_end.get(y0) and year_end.get(y1)):
+            continue
+        eps0, eps1 = a0.net_income / shares[y0], a1.net_income / shares[y1]
+        per0, per1 = year_end[y0] / eps0, year_end[y1] / eps1
+        if abs(math.log(per1 / per0)) < math.log(1.4):  # 40% 넘게 바뀐 해만 (차이가 분명해야 정답도 분명하다)
+            continue
+        pf, ef = year_end[y1] / year_end[y0], eps1 / eps0
+        if abs(abs(math.log(pf)) - abs(math.log(ef))) < math.log(1.15):  # 주가·이익 영향이 비슷하면 정답이 애매해서 뺀다
+            continue
+        cands.append((y0, y1, per0, per1, pf, ef))
+    if ref:
+        cands = [c for c in cands if str(c[1]) == ref]
+    if not cands:
+        return None
+    y0, y1, per0, per1, pf, ef = cands[0] if ref else rng.choice(cands)
+    if abs(math.log(pf)) >= abs(math.log(ef)):
+        correct = "price-up" if pf > 1 else "price-down"
+    else:
+        correct = "earn-up" if ef > 1 else "earn-down"
+    t = bank.PER_CHANGE
+    values = {
+        "name": name,
+        "y0": y0,
+        "y1": y1,
+        "per0": f"{per0:.1f}",
+        "per1": f"{per1:.1f}",
+        "word": "높아졌어요" if per1 > per0 else "낮아졌어요",
+        "price_change": f"{year_end[y0]:,}원 → {year_end[y1]:,}원({pf - 1:+.0%})",
+        "eps_change": f"{(pf / (per1 / per0)) - 1:+.0%}",
+    }
+    labels = bank.PER_CHANGE_OPTIONS
+    item = _from_template(
+        "per_change",
+        code,
+        str(y1),
+        name,
+        t,
+        values,
+        rng,
+        correct_text=labels[correct],
+        wrong_texts=[labels[k] for k in labels if k != correct],
+        context=[
+            f"{y0}년 말 주가 {year_end[y0]:,}원 → {y1}년 말 {year_end[y1]:,}원 ({pf - 1:+.0%})",
+            f"1주당 1년 이익(EPS) {y0}년 → {y1}년: {ef - 1:+.0%}",
+            "PER = 주가 ÷ 1주당 이익",
+        ],
+    )
+    return item

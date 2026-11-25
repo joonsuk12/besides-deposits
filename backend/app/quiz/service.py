@@ -34,7 +34,7 @@ DAILY = 3
 
 
 def _candidates(db: Session) -> list[str]:
-    """문제에 쓸 종목: 관심종목(ETF 제외)을 먼저, 모자라면 PER 정보가 있는 다른 종목."""
+    """문제에 쓸 종목: 관심종목(ETF 제외)만. 사용자가 관심 둔 회사로 배워야 기억에 남는다 (2026-11-25 사용자 요청)."""
     watched = [s.code for s in stock_repository.find_watched_stocks(db) if s.market != "ETF"]
     return watched
 
