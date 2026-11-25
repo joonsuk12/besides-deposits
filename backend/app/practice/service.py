@@ -617,6 +617,23 @@ def _rate_facts(db: Session, as_of: date, highlight: bool) -> list[Fact]:
     return facts
 
 
+def then_valuation(db: Session, code: str, prices: list, i: int) -> dict | None:
+    """읽기 퀴즈용: prices[i] 날짜에 알 수 있던 실적으로 계산한 PER과, 지난 해들 연말 PER(이 회사의 평소 범위).
+
+    PER을 계산할 수 없거나 비교할 해가 2개보다 적으면 None. 6개월 뒤 등락(참고용)도 같이 돌려준다.
+    """
+    annual = _known_annual(db, code, prices[i].date)
+    if not annual:
+        return None
+    years = _year_rows(db, code, annual, prices)
+    per, _ = _stock_multiples(db, code, annual, prices[i].close)
+    past = [y.per for y in years if y.per]
+    if not per or len(past) < 2:
+        return None
+    after = _pct(prices[i + HORIZON].close, prices[i].close) if i + HORIZON < len(prices) else None
+    return {"per": per, "past": past, "years": [y.year for y in years if y.per], "last_year": annual[-1].year, "after": after}
+
+
 # ── 답 ──────────────────────────────────────────────────
 
 

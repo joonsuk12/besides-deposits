@@ -380,3 +380,49 @@ export type MyInsights = {
 };
 export const fetchMyInsights = () => request<MyInsights>("/mydata/insights");
 export const MYDATA_EXPORT_URL = `${API_URL}/mydata/export`;
+
+// 오늘의 읽기 퀴즈: 내 관심종목의 실제 공시·지표로 "읽는 법"을 묻는 정답 있는 문제
+export type QuizResult = {
+  correct: boolean;
+  chosen_key: string;
+  correct_key: string;
+  correct_label: string;
+  explanation: string;
+  checks: string[];
+  note: string | null;
+  link: string | null;
+};
+export type QuizQuestion = {
+  qid: string;
+  type: string;
+  type_label: string;
+  stock_code: string;
+  stock_name: string;
+  prompt: string;
+  context: string[];
+  options: Option[];
+  result: QuizResult | null;
+};
+export type QuizToday = { day: string; questions: QuizQuestion[]; done: number };
+export type QuizStats = {
+  total: number;
+  correct: number;
+  streak: number;
+  days: number;
+  by_type: { type: string; label: string; total: number; correct: number }[];
+  recent_wrong: { created_at: string; type_label: string; stock_name: string; prompt: string; correct_label: string }[];
+  lines: string[];
+};
+export const fetchQuizToday = () => request<QuizToday>("/quiz/today");
+export const fetchQuizStats = () => request<QuizStats>("/quiz/stats");
+export const fetchQuizExtra = (exclude: string[]) =>
+  request<QuizQuestion | null>(`/quiz/extra?exclude=${encodeURIComponent(exclude.join(","))}`);
+export async function submitQuizAnswer(qid: string, choice: string): Promise<QuizResult> {
+  const res = await fetch(`${API_URL}/quiz/answer`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ qid, choice }),
+  });
+  if (!res.ok) throw new Error(`채점 실패 (${res.status})`);
+  return res.json();
+}

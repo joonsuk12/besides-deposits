@@ -16,6 +16,7 @@ from app.etf.router import router as etf_router
 from app.mydata.router import router as mydata_router
 from app.news.router import router as news_router
 from app.practice.router import router as practice_router
+from app.quiz.router import router as quiz_router
 from app.report.router import router as report_router
 from app.risk.router import router as risk_router
 from app.stock.router import router as stock_router
@@ -53,3 +54,4 @@ app.include_router(trend_router)
 app.include_router(risk_router)
 app.include_router(mydata_router)
 app.include_router(practice_router)
+app.include_router(quiz_router)
