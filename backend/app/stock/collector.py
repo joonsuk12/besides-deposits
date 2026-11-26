@@ -41,31 +41,12 @@ def fetch_stock_list() -> list[tuple[str, str, str]]:
 
 
 def fetch_daily_prices(code: str, start: date, end: date) -> list[PriceRow]:
-    """일봉을 가져온다. pykrx가 실패하거나 비어 있으면 FinanceDataReader로 다시 시도한다."""
-    from app.core import krx
+    """일봉을 FinanceDataReader로 가져온다 (로그인 필요 없음).
 
-    if not krx.is_paused():  # KRX가 막혀 쉬는 중이면 바로 FinanceDataReader로
-        try:
-            rows = _fetch_from_pykrx(code, start, end)
-            if rows:
-                return rows
-        except Exception as e:  # KRX 사이트가 바뀌거나 IP가 잠깐 막히면 pykrx가 깨진다
-            krx.pause(repr(e)[:80])
-            print(f"  pykrx 실패({code}): {e!r} → FinanceDataReader로 재시도")
+    2026-11-25까지는 pykrx(KRX)를 먼저 썼지만, KRX는 로그인·요청이 몰리면 IP를 막아서
+    KRX는 ETF 구성종목 비중에만 쓰기로 했다 (docs/decisions.md 2026-11-25).
+    """
     return _fetch_from_fdr(code, start, end)
-
-
-def _fetch_from_pykrx(code: str, start: date, end: date) -> list[PriceRow]:
-    from app.core.krx import use_login
-
-    use_login()
-    from pykrx import stock as krx
-
-    df = krx.get_market_ohlcv(start.strftime("%Y%m%d"), end.strftime("%Y%m%d"), code)
-    return [
-        PriceRow(day.date(), int(r["시가"]), int(r["고가"]), int(r["저가"]), int(r["종가"]), int(r["거래량"]))
-        for day, r in df.iterrows()
-    ]
 
 
 def _fetch_from_fdr(code: str, start: date, end: date) -> list[PriceRow]:

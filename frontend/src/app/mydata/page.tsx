@@ -1,8 +1,8 @@
 "use client";
 // 내 기록 (주소: /mydata). 마이데이터를 가공해서 "내가 그때 이렇게 생각했고, 그 뒤 이렇게 됐다"를 보여준다.
-//   1) 한 줄 돌아보기 (위험 신호 + 타임머신)
+//   1) 한 줄 돌아보기 (위험 신호 + 읽기 퀴즈 + 예전 타임머신)
 //   2) 위험 신호를 보고 남긴 생각 → 그 뒤 주가
-//   3) 타임머신 연습: 예상별·이유별 정답률
+//   3) 읽기 퀴즈: 연속 학습일, 유형별 정답률, 다시 볼 것 / 예전 타임머신 기록(있을 때만)
 //   4) 전체 기록 내보내기 (JSON)
 // 좋고 나쁨을 판정하거나 매수·매도를 권하지 않는다.
 
@@ -13,9 +13,11 @@ import {
   MYDATA_EXPORT_URL,
   fetchMyInsights,
   fetchPracticeHistory,
+  fetchQuizStats,
   type MyInsights,
   type PracticeHistory,
   type PracticeStat,
+  type QuizStats,
 } from "@/lib/api";
 import styles from "./mydata.module.css";
 
@@ -44,6 +46,7 @@ function Rate({ items }: { items: PracticeStat[] }) {
 export default function MyDataPage() {
   const [ins, setIns] = useState<MyInsights | null>(null);
   const [hist, setHist] = useState<PracticeHistory | null>(null);
+  const [quiz, setQuiz] = useState<QuizStats | null>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -53,10 +56,13 @@ export default function MyDataPage() {
     fetchPracticeHistory()
       .then(setHist)
       .catch(() => setFailed(true));
+    fetchQuizStats()
+      .then(setQuiz)
+      .catch(() => setFailed(true));
   }, []);
 
-  const lines = [...(ins?.lines ?? []), ...(hist?.lines ?? [])];
-  const empty = ins && hist && ins.risk_items.length === 0 && hist.total === 0;
+  const lines = [...(quiz?.lines ?? []), ...(ins?.lines ?? []), ...(hist?.lines ?? [])];
+  const empty = ins && hist && quiz && ins.risk_items.length === 0 && hist.total === 0 && quiz.total === 0;
 
   return (
     <div className={styles["page"]}>
@@ -80,7 +86,7 @@ export default function MyDataPage() {
               종목 화면 오른쪽 <b>🚦 위험 신호 점검</b> 카드 아래 &quot;📝 내 생각 기록하기&quot;
             </li>
             <li>
-              <Link href="/practice">⏳ 타임머신 연습장</Link>에서 문제 풀기
+              <Link href="/quiz">📚 오늘의 퀴즈</Link>에서 문제 풀기
             </li>
           </ul>
         </section>
@@ -98,6 +104,37 @@ export default function MyDataPage() {
       )}
 
       <div className={styles["grid"]}>
+        {quiz && quiz.total > 0 && (
+          <section className="ui-card">
+            <h2>📚 읽기 퀴즈</h2>
+            <p className={styles["score"]}>
+              🔥 <b>{quiz.streak}일</b> 연속 · {quiz.total}문제 중 <b>{quiz.correct}문제</b> 맞힘 (
+              {Math.round((quiz.correct / quiz.total) * 100)}%)
+            </p>
+            <h3>유형별로</h3>
+            <Rate
+              items={quiz.by_type.map((t) => ({ key: t.type, label: t.label, total: t.total, correct: t.correct }))}
+            />
+            {quiz.recent_wrong.length > 0 && (
+              <>
+                <h3>다시 볼 것</h3>
+                <ul className={styles["items"]}>
+                  {quiz.recent_wrong.map((w) => (
+                    <li key={w.created_at}>
+                      <div className={styles["sub"]}>{w.type_label}</div>
+                      <div>{w.prompt}</div>
+                      <div className={styles["memo"]}>정답: {w.correct_label}</div>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            <Link className="ui-btn" href="/quiz">
+              오늘의 퀴즈 풀기
+            </Link>
+          </section>
+        )}
+
         {ins && ins.risk_items.length > 0 && (
           <section className="ui-card">
             <h2>🚦 위험 신호를 보고 남긴 생각</h2>
@@ -138,7 +175,7 @@ export default function MyDataPage() {
 
         {hist && hist.total > 0 && (
           <section className="ui-card">
-            <h2>⏳ 타임머신 연습</h2>
+            <h2>⏳ 타임머신 (예전 기록)</h2>
             <p className={styles["score"]}>
               {hist.total}문제 중 <b>{hist.correct}문제</b> 맞힘 ({Math.round((hist.correct / hist.total) * 100)}%)
             </p>
@@ -165,9 +202,9 @@ export default function MyDataPage() {
                 </li>
               ))}
             </ul>
-            <Link className="ui-btn" href="/practice">
-              문제 더 풀기
-            </Link>
+            <p className={styles["muted"]}>
+              6개월 뒤 주가를 맞히는 연습은 운에 가까워서 읽기 퀴즈로 바꿨어요. 예전 기록만 남겨 뒀어요.
+            </p>
           </section>
         )}
       </div>

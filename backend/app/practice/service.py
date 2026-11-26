@@ -393,9 +393,14 @@ SECTOR_INDEXES = (
 KRX_MARKET_INDEX = {"KOSPI": ("1001", "코스피"), "KOSDAQ": ("2001", "코스닥")}
 SECTOR_REFRESH_MIN = 60 * 24 * 30  # 업종 구성은 한 달에 한 번
 BONDS = (("국고채3년", "국고채 3년"), ("국고채10년", "국고채 10년"))
+# 2026-11-25: KRX가 IP를 막아서 KRX는 ETF 구성종목 비중에만 쓰기로 했다. 타임머신은 KRX를 새로 부르지 않고
+# 이미 저장해 둔 업종 PER·PBR·금리만 쓴다 (없는 날짜는 그 묶음이 숨겨진다). 다시 쓰려면 True로.
+KRX_MARKET_DATA = False
 
 
 def _ensure_sectors(db: Session) -> None:
+    if not KRX_MARKET_DATA:
+        return
     key, try_key = "krx-sectors", "krx-sectors-try"
     if fetch_log.is_fresh(db, key, SECTOR_REFRESH_MIN) or fetch_log.is_fresh(db, try_key, 60 * 6):
         return  # 한 달 안에 성공했거나, 6시간 안에 시도했다 실패했으면 넘어간다
@@ -445,6 +450,8 @@ def _bond_series(db: Session, kind: str, start: date, end: date) -> list:
 
 
 def _fetch_index_history(db: Session, index_code: str) -> bool:
+    if not KRX_MARKET_DATA:
+        return False
     key = f"krx-valuation-try:{index_code}"
     if krx.is_paused() or fetch_log.is_fresh(db, key, RETRY_MIN):
         return False
@@ -465,6 +472,8 @@ def _fetch_index_history(db: Session, index_code: str) -> bool:
 
 
 def _fetch_bond_history(db: Session, kind: str) -> bool:
+    if not KRX_MARKET_DATA:
+        return False
     key = f"krx-bond-try:{kind}"
     if krx.is_paused() or fetch_log.is_fresh(db, key, RETRY_MIN):
         return False
@@ -484,6 +493,8 @@ def _fetch_bond_history(db: Session, kind: str) -> bool:
 def refresh_market_history(db: Session) -> int:
     """매일 수집(app.daily)용: 업종 구성, 코스피·코스닥·업종 지수 PER·PBR, 국고채 금리를 10년치 받아 둔다.
     문제를 낼 때 KRX에 묻지 않아도 되게 미리 채워 두는 것이다. 받은 지수·금리 개수를 돌려준다."""
+    if not KRX_MARKET_DATA:
+        return 0
     _ensure_sectors(db)
     count = 0
     for code in [c for c, _ in KRX_MARKET_INDEX.values()] + SECTOR_INDEXES:
@@ -604,6 +615,23 @@ def _rate_facts(db: Session, as_of: date, highlight: bool) -> list[Fact]:
             )
         )
     return facts
+
+
+def then_valuation(db: Session, code: str, prices: list, i: int) -> dict | None:
+    """읽기 퀴즈용: prices[i] 날짜에 알 수 있던 실적으로 계산한 PER과, 지난 해들 연말 PER(이 회사의 평소 범위).
+
+    PER을 계산할 수 없거나 비교할 해가 2개보다 적으면 None. 6개월 뒤 등락(참고용)도 같이 돌려준다.
+    """
+    annual = _known_annual(db, code, prices[i].date)
+    if not annual:
+        return None
+    years = _year_rows(db, code, annual, prices)
+    per, _ = _stock_multiples(db, code, annual, prices[i].close)
+    past = [y.per for y in years if y.per]
+    if not per or len(past) < 2:
+        return None
+    after = _pct(prices[i + HORIZON].close, prices[i].close) if i + HORIZON < len(prices) else None
+    return {"per": per, "past": past, "years": [y.year for y in years if y.per], "last_year": annual[-1].year, "after": after}
 
 
 # ── 답 ──────────────────────────────────────────────────

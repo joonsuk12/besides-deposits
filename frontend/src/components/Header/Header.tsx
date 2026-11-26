@@ -9,7 +9,12 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { BiBarChartAlt2 } from "react-icons/bi";
 import { FaRegStar } from "react-icons/fa";
-import { HiOutlineBookOpen, HiOutlineClock, HiOutlineDocumentText, HiOutlineQuestionMarkCircle } from "react-icons/hi";
+import {
+  HiOutlineBookOpen,
+  HiOutlineDocumentText,
+  HiOutlineLightBulb,
+  HiOutlineQuestionMarkCircle,
+} from "react-icons/hi";
 
 import Logoimg from "@/assets/logo.png";
 import { goToStart, type Stock } from "@/lib/api";
@@ -49,9 +54,9 @@ export default function Header() {
           <FaRegStar size={18} aria-hidden />
           <span>관심종목</span>
         </Link>
-        <Link className={on(pathname === "/practice")} href="/practice" aria-label="타임머신 연습장">
-          <HiOutlineClock size={20} aria-hidden />
-          <span>타임머신</span>
+        <Link className={on(pathname === "/quiz")} href="/quiz" aria-label="오늘의 퀴즈">
+          <HiOutlineLightBulb size={20} aria-hidden />
+          <span>퀴즈</span>
         </Link>
         <Link className={on(pathname === "/mydata")} href="/mydata" aria-label="내 기록">
           <HiOutlineBookOpen size={20} aria-hidden />
